@@ -705,9 +705,11 @@
             }
 
             _transformForMCQ(q) {
+                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
+                const stemText = this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, blankSpan);
                 return {
                     n: 1,
-                    stem: DOMPurify.sanitize(this._formatStemText(q.question)),
+                    stem: DOMPurify.sanitize(stemText),
                     type: 'mcq',
                     choices: (q.choices || []).map((choice, i) => ({
                         type: i === q.answer ? 'key' : 'distractor',
@@ -726,9 +728,11 @@
             }
 
             _transformForMatching(q) {
+                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
+                const stemText = this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, blankSpan);
                 const part = {
                     n: 1,
-                    stem: DOMPurify.sanitize(this._formatStemText(q.question)),
+                    stem: DOMPurify.sanitize(stemText),
                     type: 'matching',
                     choices: [],
                     subtype: null,
@@ -753,9 +757,11 @@
             }
 
             _transformForGappedText(q) {
+                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
+                const stemText = this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, blankSpan);
                 const part = {
                     n: 1,
-                    stem: DOMPurify.sanitize(this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>')),
+                    stem: DOMPurify.sanitize(stemText),
                     type: 'gapText',
                     choices: [],
                     subtype: null,
@@ -777,11 +783,14 @@
                 }
                 return part;
             }
-
+            
+            // *** FIXED FUNCTION: Now replaces underscores with span for String type ***
             _transformForString(q) {
+                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
+                const stemText = this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, blankSpan);
                 return {
                     n: 1,
-                    stem: DOMPurify.sanitize(this._formatStemText(q.question), { USE_PROFILES: { html: true } }),
+                    stem: DOMPurify.sanitize(stemText, { USE_PROFILES: { html: true } }),
                     type: 'string',
                     answer: Array.isArray(q.answer) ? q.answer : [q.answer],
                     choices: null,
@@ -790,10 +799,13 @@
                 };
             }
 
+            // *** FIXED FUNCTION: Bypasses _formatStemText for essay questions but still replaces underscores ***
             _transformForFreeResponse(q) {
+                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
+                const stemText = q.question.replace(/_{2,}|\[gap\]/g, blankSpan);
                 return {
                     n: 1,
-                    stem: DOMPurify.sanitize(this._formatStemText(q.question)),
+                    stem: DOMPurify.sanitize(stemText), // Directly sanitize and replace underscores
                     type: 'frq',
                     answer: DOMPurify.sanitize(q.answer),
                     choices: [],
@@ -913,8 +925,8 @@
                     btn.disabled = true; 
                     btn.innerHTML = `<div class="spinner"></div> <span>${this.language === 'ar' ? 'جاري...' : 'Processing...'}</span>`; 
                 } else { 
-                    btn.disabled = false; 
                     btn.innerHTML = this.language === 'ar' ? '💎 تحسين بالـ AI' : '💎 Enhance with AI'; 
+                    btn.disabled = false;
                 } 
             }
             showMessage(text, type = 'success') { const container = document.getElementById('messageContainer'); const messageDiv = document.createElement('div'); messageDiv.className = `message ${type}`; messageDiv.textContent = text; container.appendChild(messageDiv); setTimeout(() => { messageDiv.remove(); }, 4000); }
@@ -927,6 +939,7 @@
                 if (this.questions.length === 0) {
                     if (placeholder) {
                         placeholder.style.display = 'flex';
+                        placeholder.querySelector('p').innerHTML = this.language === 'ar' ? 'ستظهر معاينة الأسئلة هنا بعد التحليل' : 'Questions preview will appear here after analysis';
                     } else {
                         const newPlaceholder = document.createElement('div');
                         newPlaceholder.id = 'preview-placeholder';
