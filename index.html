@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محول الأسئلة الذكي المتطور - النسخة النهائية المدمجة</title>
+    <!-- CSS libraries remain in the head -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.min.css" />
+    <style>
+        /* --- Basic Setup --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Main Container --- */
+        .container {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .ai-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            backdrop-filter: blur(10px);
+        }
+
+        /* --- Content Layout --- */
+        .content {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel h3 {
+            color: #4f46e5;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .question-type-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .q-type-btn {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            font-weight: 600;
+            color: #475569;
+            text-align: center;
+        }
+
+        .q-type-btn:hover {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .q-type-btn.active {
+            background-color: #e0e7ff;
+            border-color: #4f46e5;
+            color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .input-section textarea, .edit-textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: white;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+        }
+
+        .input-section textarea:focus, .edit-textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .api-key-section {
+            margin-top: 15px;
+        }
+
+        .api-key-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .api-key-section input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .controls .btn { flex-grow: 1; }
+
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover:before { left: 100%; }
+        .btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+        .btn-primary { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3); }
+        .btn-secondary { background: #f3f4f6; color: #374151; border: 2px solid #d1d5db; }
+        .btn-secondary:hover:not(:disabled) { background: #e5e7eb; border-color: #9ca3af; }
+        .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+        .btn-ai { background: linear-gradient(135deg, #ec4899 0%, #d946ef 100%); color: white; }
+        .btn-ai:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3); }
+
+        .json-output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #334155;
+            flex-grow: 1;
+            margin-top: 15px;
+        }
+
+        .json-output .key { color: #60a5fa; }
+        .json-output .string { color: #34d399; }
+        .json-output .number { color: #fbbf24; }
+        .json-output .boolean { color: #f87171; }
+        .json-output .null { color: #a78bfa; }
+        
+        .analysis-section { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .analysis-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.9em; }
+        .analysis-item:last-child { border-bottom: none; }
+        .confidence-bar { width: 100px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+        .confidence-fill { height: 100%; background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981); border-radius: 4px; transition: width 0.5s ease-in-out; }
+
+        #questionsPreview { flex-grow: 1; overflow-y: auto; max-height: 70vh; }
+        .question-preview { background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); animation: fadeIn 0.5s ease; position: relative; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .question-actions { position: absolute; top: 10px; left: 10px; display: none; gap: 8px; z-index: 10; }
+        .question-preview:hover .question-actions { display: flex; }
+        .action-btn { background: rgba(249, 250, 251, 0.8); border: 1px solid #d1d5db; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; backdrop-filter: blur(2px); }
+        .action-btn:hover { background: #4f46e5; border-color: #4f46e5; color: white; transform: scale(1.1); }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; background: #e5e7eb; }
+        
+        .question-preview h4 { color: #374151; margin-bottom: 10px; font-size: 1.1em; line-height: 1.5; }
+        .question-type-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; margin-bottom: 10px; }
+        .type-mcq { background: #dbeafe; color: #1e40af; }
+        .type-matching { background: #e0e7ff; color: #3730a3; }
+        .type-gapText { background: #d1fae5; color: #065f46; }
+        .type-string { background: #fef3c7; color: #92400e; }
+        .type-frq { background: #fce7f3; color: #be185d; }
+        .type-unknown { background: #fee2e2; color: #991b1b; }
+        
+        .choice-item { padding: 8px 15px; margin: 5px 0; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s ease; }
+        .choice-item:hover { background: #f3f4f6; border-color: #4f46e5; }
+        .choice-item.correct { background: #dcfce7; border-color: #16a34a; color: #15803d; font-weight: bold; }
+        .choice-item.correct::before { content: '✔ '; color: #15803d; }
+
+        .matching-preview { display: flex; gap: 20px; }
+        .matching-column { flex: 1; }
+        .matching-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 8px; }
+        
+        .gapped-text-answers { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc; }
+        .gapped-text-answers strong { color: #4f46e5; }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb; transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08); }
+        .stat-card h4 { color: #4f46e5; margin-bottom: 10px; font-size: 0.9em; }
+        .stat-card span { font-size: 2em; font-weight: bold; color: #1f2937; }
+
+        .loading { display: none; text-align: center; padding: 20px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        .btn .spinner { width: 20px; height: 20px; margin: 0; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .message-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .message { padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); animation: slideIn 0.5s ease, fadeOut 0.5s ease 3.5s forwards; font-weight: 500; min-width: 300px; text-align: center; }
+        .message.error { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+        .message.success { background: #dcfce7; color: #065f46; border: 1px solid #a7f3d0; }
+        .message.warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        @keyframes slideIn { from { transform: translateY(-50px) translateX(-50%); opacity: 0; } to { transform: translateY(0) translateX(-50%); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-20px) translateX(-50%); } }
+        
+        #csvModalBg {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.25); z-index: 3000; align-items: center; justify-content: center;
+        }
+        #csvModal {
+            background: white; border-radius: 16px; max-width: 1200px; width: 95vw; padding: 32px 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15); position: relative; min-height: 600px; min-width: 900px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #csvModal .hot-container { margin-bottom: 18px; width: 100%; }
+        #csvModal .btn { min-width: 120px; }
+        #csvModal .csv-warning { color: #dc2626; font-weight: bold; margin-bottom: 10px; }
+
+        @media (max-width: 1200px) { .content { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) { body { padding: 10px; } .content { grid-template-columns: 1fr; padding: 20px; } .header h1 { font-size: 2em; } .header p { font-size: 1em; } .controls { flex-direction: column; } .btn { width: 100%; } .question-type-selector { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div id="messageContainer" class="message-container"></div>
+    <div class="container">
+        <div class="header">
+            <div class="ai-badge">🤖 AI Powered</div>
+            <h1 id="main-title">🚀 محول الأسئلة الذكي المتطور</h1>
+            <p id="main-subtitle">حوّل نصوص الأسئلة إلى صيغة JSON متقدمة بضغطة زر</p>
+        </div>
+
+        <div class="content">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h3 id="panel-title-1"><span style="font-size: 1.5em; line-height: 1;">①</span> اختر نوع السؤال</h3>
+                <div id="questionTypeSelector" class="question-type-selector">
+                    <!-- Buttons will be dynamically inserted here -->
+                </div>
+                
+                <h3 id="panel-title-2" style="margin-top: 20px;"><span style="font-size: 1.5em; line-height: 1;">②</span> أدخل النص</h3>
+                <div class="input-section">
+                    <textarea id="questionInput" placeholder="أدخل الأسئلة هنا..."></textarea>
+                </div>
+                <div class="api-key-section">
+                    <input type="password" id="apiKey" placeholder="🔑 أدخل مفتاح Gemini API هنا">
+                </div>
+                <div class="controls">
+                    <button id="smart-analyze-btn" class="btn btn-primary" onclick="app.smartAnalyze()">🤖 تحليل ذكي</button>
+                    <button class="btn btn-ai" id="aiEnhanceBtn" onclick="app.enhanceWithAI()">💎 تحسين بالـ AI</button>
+                </div>
+                 <div class="controls">
+                    <button id="convert-json-btn" class="btn btn-success" onclick="app.convertToJSON()">🔄 تحويل لـ JSON</button>
+                    <button id="customizeBtn" class="btn btn-secondary" onclick="app.openCustomizeModal()">⚙️ تخصيص</button>
+                    <button id="clear-all-btn" class="btn btn-secondary" onclick="app.clearAll()">🗑️ مسح الكل</button>
+                    <button class="btn btn-warning" id="langSwitchBtn" onclick="app.toggleLanguage()">🌐 English</button>
+                </div>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p id="loading-text">جاري التحليل...</p>
+                </div>
+            </div>
+
+            <!-- Analysis & Output Panel -->
+            <div class="panel">
+                <h3 id="panel-title-3">🔍 تحليل ومخرجات</h3>
+                <div class="analysis-section" id="analysisSection">
+                    <div class="analysis-item"><span id="analysis-label-1">جودة الكشف:</span><div class="confidence-bar"><div id="detectionQuality" class="confidence-fill" style="width: 0%"></div></div></div>
+                    <div class="analysis-item"><span id="analysis-label-2">دقة التصنيف:</span><div class="confidence-bar"><div id="classificationAccuracy" class="confidence-fill" style="width: 0%"></div></div></div>
+                    <div class="analysis-item"><span id="analysis-label-3">اكتمال البيانات:</span><div class="confidence-bar"><div id="dataCompleteness" class="confidence-fill" style="width: 0%"></div></div></div>
+                </div>
+                <div class="stats" id="stats">
+                    <div class="stat-card"><h4 id="stats-label-1">إجمالي الأسئلة</h4><span id="totalQuestions">0</span></div>
+                    <div class="stat-card"><h4 id="stats-label-2">معدل الثقة</h4><span id="confidenceScore">0%</span></div>
+                </div>
+                <div class="json-output" id="jsonOutput" style="display: none;"></div>
+                <div class="controls" style="margin-top: auto;">
+                    <button class="btn btn-secondary" id="copyBtn" onclick="app.copyJSON()" disabled>📋 نسخ JSON</button>
+                    <button class="btn btn-warning" id="downloadBtn" onclick="app.downloadJSON()" disabled>💾 تحميل</button>
+                    <button class="btn btn-warning" id="downloadZipBtn" onclick="app.downloadZip()" disabled>🗜️ تحميل كـ ZIP</button>
+                    <button class="btn btn-secondary" id="csvBtn" onclick="app.openCSVModal()" disabled>📄 CSV</button>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="panel">
+                <h3 id="panel-title-4">👁️ معاينة الأسئلة</h3>
+                <div id="questionsPreview">
+                    <div id="preview-placeholder" style="text-align: center; color: #6b7280; padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">📋</div>
+                        <p>ستظهر معاينة الأسئلة هنا بعد التحليل</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="customizeModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:2000; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:16px; max-width:400px; width:90vw; padding:32px 24px; box-shadow:0 8px 32px rgba(0,0,0,0.15); position:relative;">
+            <button onclick="app.closeCustomizeModal()" style="position:absolute; top:12px; left:12px; background:none; border:none; font-size:1.5em; cursor:pointer;">&times;</button>
+            <h2 id="customize-title" style="text-align:center; margin-bottom:24px; color:#4f46e5;">تخصيص الإعدادات</h2>
+            <div style="margin-bottom:18px;">
+                <label for="categorySelect" style="font-weight:bold;">Category</label>
+                <select id="categorySelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px;"
+                    onchange="app.handleCustomizationChange()">
+                    <option value="lesson" selected>lesson</option>
+                    <option value="exam">exam</option>
+                </select>
+            </div>
+            <div style="margin-bottom:18px;">
+                <label for="langSelect" style="font-weight:bold;">Lang</label>
+                <select id="langSelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px;"
+                    onchange="app.handleCustomizationChange()">
+                    <option value="ar" selected>ar</option>
+                    <option value="en">en</option>
+                </select>
+            </div>
+            <div style="margin-bottom:18px;">
+                <label for="countrySelect" style="font-weight:bold;">Country</label>
+                <select id="countrySelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px;"
+                    onchange="app.handleCustomizationChange()">
+                    <option value="eg" selected>eg</option>
+                    <option value="sa">sa</option>
+                    <option value="ae">ae</option>
+                    <option value="kw">kw</option>
+                    <option value="qa">qa</option>
+                    <option value="bh">bh</option>
+                    <option value="om">om</option>
+                </select>
+            </div>
+            <div style="margin-bottom:24px;">
+                <label for="dialectSelect" style="font-weight:bold;">Dialect</label>
+                <select id="dialectSelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px;"
+                    onchange="app.handleCustomizationChange()">
+                    <option value="Modern_standard" selected>Modern_standard</option>
+                </select>
+            </div>
+            <button id="customize-save-btn" class="btn btn-primary" style="width:100%;" onclick="app.saveCustomization()">حفظ</button>
+        </div>
+    </div>
+
+    <!-- Handsontable CSV Modal -->
+    <div id="csvModalBg" style="display:none;">
+        <div id="csvModal">
+            <button onclick="app.closeCSVModal()" style="position:absolute; top:12px; left:12px; background:none; border:none; font-size:1.5em; cursor:pointer;">&times;</button>
+            <h2 id="csv-title" style="text-align:center; margin-bottom:18px; color:#4f46e5;">CSV Editor</h2>
+            <div class="csv-warning" id="csvWarning" style="display:none;"></div>
+            <div id="hotTable" class="hot-container"></div>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:18px;">
+              <button id="csv-save-btn" class="btn btn-success" onclick="app.saveCSVData()">💾 حفظ</button>
+              <button id="csv-close-btn" class="btn btn-secondary" onclick="app.closeCSVModal()">❌ إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- All scripts are moved to the end of the body for robust loading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.min.js"></script>
+    <script>
+        class AIQuestionConverter {
+            constructor() {
+                this.questions = [];
+                this.isAIProcessing = false;
+                this.jsonForExport = '';
+                this.activeQuestionType = 'mcq';
+                this.customization = { category: 'lesson', country: 'eg', dialect: 'Modern_standard', lang: 'ar' };
+                this.language = 'ar'; // For UI translation
+                this.apiKey = '';
+                // CSV Properties
+                this.csvData = [];
+                this.hotInstance = null;
+
+                this.questionTypeConfigs = {
+                    'mcq': { label: 'MCQ', jsonType: 'mcq' },
+                    'matching': { label: 'Matching', jsonType: 'matching' },
+                    'gap_text': { label: 'Gapped Text', jsonType: 'gapText' },
+                    'string': { label: 'String', jsonType: 'string' },
+                    'free_response': { label: 'Free Response', jsonType: 'frq' }
+                };
+
+                this.loadSettings();
+                this.loadApiKey();
+                this.renderQuestionTypeButtons();
+                this.setActiveQuestionType(this.activeQuestionType);
+                this.updateInterfaceLanguage(); // Set initial language on load
+            }
+
+            // ===== UI Rendering and State Management =====
+            renderQuestionTypeButtons() {
+                const container = document.getElementById('questionTypeSelector');
+                if (!container) return;
+                container.innerHTML = '';
+                for (const typeKey in this.questionTypeConfigs) {
+                    const config = this.questionTypeConfigs[typeKey];
+                    const button = document.createElement('button');
+                    button.className = 'q-type-btn';
+                    button.textContent = config.label;
+                    button.dataset.type = typeKey;
+                    button.onclick = () => this.setActiveQuestionType(typeKey);
+                    container.appendChild(button);
+                }
+            }
+
+            setActiveQuestionType(typeKey) {
+                this.activeQuestionType = typeKey;
+                document.querySelectorAll('.q-type-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.type === typeKey);
+                });
+            }
+
+            // ===== Main Actions =====
+            smartAnalyze() {
+                const rawText = document.getElementById('questionInput').value.trim();
+                if (!rawText) {
+                    this.showMessage(this.language === 'ar' ? 'الرجاء إدخال نص للتحليل' : 'Please enter text to analyze', 'warning');
+                    return;
+                }
+                
+                try {
+                    const questionBlocks = rawText.split(/\n\s*\*{5,}\s*\n|\n\s*\n/).filter(block => block.trim().length > 5);
+                    if (questionBlocks.length === 0) {
+                        this.showMessage(this.language === 'ar' ? 'لم يتم العثور على أسئلة قابلة للتحليل.' : 'No analyzable questions found.', 'warning');
+                        return;
+                    }
+
+                    this.questions = questionBlocks.map((block, index) => {
+                        const parsedQuestion = this._parseLocally(block, this.activeQuestionType);
+                        parsedQuestion.id = `temp_${Date.now()}_${index}`;
+                        return parsedQuestion;
+                    });
+
+                    this.updateUIAfterChange(this.language === 'ar' ? 'تم التحليل الذكي بنجاح.' : 'Smart analysis successful.');
+                } catch (error) {
+                    console.error("Smart Analysis Error:", error);
+                    this.showMessage(`${this.language === 'ar' ? 'حدث خطأ أثناء التحليل الذكي: ' : 'Error during smart analysis: '}${error.message}`, 'error');
+                }
+            }
+
+            async enhanceWithAI() {
+                if (this.questions.length === 0) {
+                    this.showMessage(this.language === 'ar' ? 'الرجاء إجراء "تحليل ذكي" أولاً قبل التحسين.' : 'Please perform "Smart Analyze" before enhancing.', 'warning');
+                    return;
+                }
+                const apiKey = document.getElementById('apiKey').value.trim();
+                if (!apiKey) {
+                    this.showMessage(this.language === 'ar' ? 'الرجاء إدخال مفتاح Gemini API للمتابعة' : 'Please enter your Gemini API key to continue', 'error');
+                    return;
+                }
+                if (this.isAIProcessing) return;
+
+                this.isAIProcessing = true;
+                this.toggleAIButtonLoading(true);
+
+                try {
+                    const simpleJsonString = JSON.stringify(this.questions);
+                    const prompt = this.getAIPromptForRefinement(this.activeQuestionType, simpleJsonString);
+                    const aiResult = await this.callGeminiAPI(prompt, apiKey);
+
+                    if (aiResult && Array.isArray(aiResult)) {
+                        this.questions = aiResult.map((q, i) => ({...q, id: this.questions[i]?.id || `temp_${Date.now()}_${i}`}));
+                        this.updateUIAfterChange(this.language === 'ar' ? 'تم تحسين الأسئلة بنجاح!' : 'Questions enhanced successfully!');
+                    } else {
+                        this.showMessage(this.language === 'ar' ? 'استجاب الذكاء الاصطناعي بصيغة غير متوقعة.' : 'AI responded with an unexpected format.', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('AI Enhancement Error:', error);
+                    this.showMessage(`${this.language === 'ar' ? 'حدث خطأ أثناء الاتصال بالـ AI: ' : 'Error contacting AI: '}${error.message}`, 'error');
+                } finally {
+                    this.isAIProcessing = false;
+                    this.toggleAIButtonLoading(false);
+                }
+            }
+            
+            _parseLocally(text, type) {
+                const baseQuestion = { id: '', type: type, question: '', confidence: 0.6 };
+                const lines = text.split('\n').filter(l => l.trim() !== '');
+                if (lines.length === 0) return { ...baseQuestion, question: text };
+                
+                const questionNumberRegex = /^\s*([0-9٠-٩]+[\.\-\)]|[\u0621-\u064A][\.\-\)])\s*/;
+                baseQuestion.question = lines[0].replace(questionNumberRegex, '').trim();
+
+                const choiceRegex = /^\s*([0-9٠-٩]+|[\u0621-\u064A A-Za-z])[\.\-\)]\s*/;
+
+                switch(type) {
+                    case 'mcq':
+                    case 'gap_text':
+                        baseQuestion.choices = [];
+                        baseQuestion.answer = null;
+                        
+                        let correctAnswerText = null;
+                        const answerMatch = baseQuestion.question.match(/\((.*?)\)/);
+                        if (answerMatch) {
+                            correctAnswerText = answerMatch[1].trim();
+                            let processedQuestion = baseQuestion.question.replace(/\(.*?\)/, '%%GAP%%');
+                            processedQuestion = processedQuestion.replace(/\s*\.\s*%%GAP%%/, '%%GAP%%.');
+                            baseQuestion.question = processedQuestion.replace(/%%GAP%%/g, '____').trim();
+                        }
+                        
+                        for (let i = 1; i < lines.length; i++) {
+                            let choiceText = lines[i].replace(choiceRegex, '').trim();
+                            if (choiceText.includes('*')) {
+                                choiceText = choiceText.replace(/\*/g, '').trim();
+                                baseQuestion.answer = baseQuestion.choices.length;
+                            }
+                            if (correctAnswerText && choiceText === correctAnswerText) {
+                                baseQuestion.answer = baseQuestion.choices.length;
+                            }
+                            baseQuestion.choices.push(choiceText);
+                        }
+                        break;
+                    default:
+                        baseQuestion.answer = lines.slice(1).join('\n');
+                        break;
+                }
+                return baseQuestion;
+            }
+
+            convertToJSON() {
+                if (this.questions.length === 0) {
+                    this.showMessage(this.language === 'ar' ? 'لا توجد أسئلة لتحويلها. الرجاء التحليل أولاً.' : 'No questions to convert. Please analyze first.', 'warning');
+                    return;
+                }
+                const advancedFormatQuestions = this.questions.map((q, index) => this.transformToAdvancedFormat(q, index));
+                const jsonOutput = document.getElementById('jsonOutput');
+                this.jsonForExport = JSON.stringify(advancedFormatQuestions, null, 2);
+                jsonOutput.innerHTML = this.syntaxHighlight(this.jsonForExport);
+                jsonOutput.style.display = 'block';
+                document.getElementById('copyBtn').disabled = false;
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('downloadZipBtn').disabled = false;
+                document.getElementById('csvBtn').disabled = false;
+                this.showMessage(this.language === 'ar' ? 'تم تحويل الأسئلة إلى الصيغة المتقدمة بنجاح' : 'Successfully converted to advanced format', 'success');
+            }
+
+            _formatStemText(stemText) {
+                const spaceSpan = `<span data-node-type="blank-line" data-node-variation="space">&nbsp;</span>`;
+                if (stemText && stemText.endsWith('.') && !stemText.includes('____') && !stemText.includes('[gap]')) {
+                    return stemText.slice(0, -1).trim() + spaceSpan + '.';
+                }
+                return stemText;
+            }
+
+            transformToAdvancedFormat(question, index) {
+                let part;
+                const type = this.questionTypeConfigs[question.type]?.jsonType || 'frq';
+
+                switch (type) {
+                    case 'mcq': part = this._transformForMCQ(question); break;
+                    case 'matching': part = this._transformForMatching(question); break;
+                    case 'gapText': part = this._transformForGappedText(question); break;
+                    case 'string': part = this._transformForString(question); break;
+                    case 'frq': part = this._transformForFreeResponse(question); break;
+                    default: part = this._transformForFreeResponse(question);
+                }
+
+                const csvRow = this.csvData && this.csvData[index];
+                const questionIdFromCsv = csvRow && csvRow['Question Id'] ? String(csvRow['Question Id']).trim() : null;
+                
+                let finalId;
+                if (questionIdFromCsv) {
+                    const parsedId = parseInt(questionIdFromCsv, 10);
+                    finalId = !isNaN(parsedId) ? parsedId : (Date.now() + index);
+                } else {
+                    finalId = Date.now() + index;
+                }
+
+                return {
+                    parts: [part],
+                    metadata: {
+                        id: finalId,
+                        title: "",
+                        country: this.customization.country,
+                        dialect: [this.customization.dialect],
+                        category: this.customization.category,
+                        language: this.customization.lang,
+                        mapped_id: finalId,
+                        source_id: { value: question.id, page_number: null },
+                        description: typeof question.question === 'string' ? question.question.replace(/<[^>]*>?/gm, '').substring(0, 200) : '',
+                        has_example: null,
+                        parts_count: 1,
+                        instances_count: 1,
+                        publication_date: new Date().toISOString()
+                    },
+                    statement: null,
+                    instance_number: 1
+                };
+            }
+
+            _transformForMCQ(q) {
+                return {
+                    n: 1,
+                    stem: DOMPurify.sanitize(this._formatStemText(q.question)),
+                    type: 'mcq',
+                    choices: (q.choices || []).map((choice, i) => ({
+                        type: i === q.answer ? 'key' : 'distractor',
+                        unit: null,
+                        group: 1,
+                        index: i,
+                        values: [],
+                        last_order: false,
+                        fixed_order: i + 1,
+                        html_content: DOMPurify.sanitize(choice),
+                        correct_order: i + 1 
+                    })),
+                    subtype: null,
+                    standalone: false
+                };
+            }
+
+            _transformForMatching(q) {
+                const part = {
+                    n: 1,
+                    stem: DOMPurify.sanitize(this._formatStemText(q.question)),
+                    type: 'matching',
+                    choices: [],
+                    subtype: null,
+                    standalone: false
+                };
+                const answersMap = new Map((q.answer || []).map(pair => [pair[0], pair[1]]));
+                (q.group1 || []).forEach((item, i) => {
+                    part.choices.push({
+                        type: 'distractor', group: 1, index: i, values: [], last_order: false, fixed_order: i + 1,
+                        html_content: DOMPurify.sanitize(item),
+                        correct_order: (answersMap.get(i) ?? -1) + 1
+                    });
+                });
+                (q.group2 || []).forEach((item, i) => {
+                    part.choices.push({
+                        type: 'distractor', group: 2, index: i, values: [], last_order: false, fixed_order: i + 1,
+                        html_content: DOMPurify.sanitize(item),
+                        correct_order: i + 1
+                    });
+                });
+                return part;
+            }
+
+            _transformForGappedText(q) {
+                const part = {
+                    n: 1,
+                    stem: DOMPurify.sanitize(this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>')),
+                    type: 'gapText',
+                    choices: [],
+                    subtype: null,
+                    standalone: false,
+                };
+
+                if (q.choices && q.choices.length > 0) {
+                    part.choices = (q.choices || []).map((choice, i) => ({
+                        type: i === q.answer ? 'key' : 'distractor',
+                        unit: null, group: 1, index: i, values: [], last_order: false, fixed_order: i + 1,
+                        html_content: DOMPurify.sanitize(choice),
+                        correct_order: i + 1
+                    }));
+                } else {
+                    part.gap_text_keys = (q.answers || []).map((ans, i) => ({
+                        value: ans,
+                        correct_order: i + 1
+                    }));
+                }
+                return part;
+            }
+
+            _transformForString(q) {
+                return {
+                    n: 1,
+                    stem: DOMPurify.sanitize(this._formatStemText(q.question), { USE_PROFILES: { html: true } }),
+                    type: 'string',
+                    answer: Array.isArray(q.answer) ? q.answer : [q.answer],
+                    choices: null,
+                    subtype: null,
+                    standalone: false
+                };
+            }
+
+            _transformForFreeResponse(q) {
+                return {
+                    n: 1,
+                    stem: DOMPurify.sanitize(this._formatStemText(q.question)),
+                    type: 'frq',
+                    answer: DOMPurify.sanitize(q.answer),
+                    choices: [],
+                    subtype: null,
+                    standalone: false
+                };
+            }
+
+            getAIPromptForRefinement(typeKey, jsonData) {
+                 return `You are an expert system for structuring test questions.
+                    Task: I have parsed some raw text using a simple script and generated the following JSON array. It may contain errors or be incomplete.
+                    Please analyze this JSON, correct any mistakes in parsing, and refine it. The original question type was identified as "${typeKey}".
+                    
+                    Input JSON:
+                    ---
+                    ${jsonData}
+                    ---
+                    
+                    IMPORTANT: Your entire response must be ONLY the corrected and refined raw JSON array. Do not include any explanatory text or markdown.
+                `;
+            }
+
+            async callGeminiAPI(prompt, apiKey) {
+                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { response_mime_type: "application/json", temperature: 0.1, maxOutputTokens: 8192 }
+                };
+                const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(errorBody.error?.message || `Request failed with status ${response.status}`);
+                }
+                const data = await response.json();
+                if (!data.candidates?.[0]?.content?.parts) {
+                    throw new Error('Invalid API response structure.');
+                }
+                const jsonText = data.candidates[0].content.parts[0].text;
+                try {
+                    const parsed = JSON.parse(jsonText);
+                    return Array.isArray(parsed) ? parsed : [parsed];
+                } catch (e) {
+                    console.error("Failed to parse AI response as JSON:", jsonText);
+                    throw new Error("Failed to parse AI response as valid JSON.");
+                }
+            }
+
+            clearAll() { 
+                document.getElementById('questionInput').value = ''; 
+                this.questions = []; 
+                this.jsonForExport = ''; 
+                this.csvData = []; // Clear CSV data
+                localStorage.removeItem('aiq_csv_data'); // Clear from storage
+                this.updateUIAfterChange(); 
+                const jsonOutput = document.getElementById('jsonOutput'); 
+                jsonOutput.style.display = 'none'; 
+                jsonOutput.innerHTML = ''; 
+                document.getElementById('copyBtn').disabled = true; 
+                document.getElementById('downloadBtn').disabled = true; 
+                document.getElementById('downloadZipBtn').disabled = true; 
+                document.getElementById('csvBtn').disabled = true; 
+                this.showMessage(this.language === 'ar' ? 'تم مسح كل شيء' : 'Everything cleared', 'success'); 
+            }
+
+            copyJSON() { if (!this.jsonForExport) { this.showMessage(this.language === 'ar' ? 'لا يوجد شيء لنسخه' : 'Nothing to copy', 'warning'); return; } const textArea = document.createElement('textarea'); textArea.value = this.jsonForExport; document.body.appendChild(textArea); textArea.select(); try { document.execCommand('copy'); this.showMessage(this.language === 'ar' ? 'تم نسخ JSON إلى الحافظة' : 'JSON copied to clipboard', 'success'); } catch (err) { this.showMessage(this.language === 'ar' ? 'فشل النسخ' : 'Copy failed', 'error'); } document.body.removeChild(textArea); }
+            
+            downloadJSON() { if (!this.jsonForExport) { this.showMessage(this.language === 'ar' ? 'لا يوجد شيء لتحميله' : 'Nothing to download', 'warning'); return; } const blob = new Blob([this.jsonForExport], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'advanced_questions.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); this.showMessage(this.language === 'ar' ? 'بدء تحميل الملف...' : 'Download starting...', 'success'); }
+            
+            downloadZip() {
+                if (this.questions.length === 0) {
+                    this.showMessage(this.language === 'ar' ? 'لا يوجد أسئلة لتحميلها' : 'No questions to download', 'warning');
+                    return;
+                }
+                const zip = new JSZip();
+                const jsonFolder = zip.folder("JSONS");
+                this.questions.forEach((q, idx) => {
+                    const filename = (this.csvData && this.csvData[idx] && this.csvData[idx]['Question Id'])
+                        ? `${this.csvData[idx]['Question Id']}.json`
+                        : `question_${q.id || idx + 1}.json`;
+
+                    const singleQuestionObject = this.transformToAdvancedFormat(q, idx);
+                    const content = JSON.stringify(singleQuestionObject, null, 2);
+                    jsonFolder.file(filename, content);
+                });
+                
+                if (this.csvData && this.csvData.length > 0) {
+                    zip.file('questions.csv', this.getCSVString());
+                }
+
+                zip.generateAsync({ type: 'blob' }).then((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'questions.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.showMessage(this.language === 'ar' ? 'تم تحميل ملف ZIP بنجاح' : 'ZIP file downloaded successfully', 'success');
+                });
+            }
+
+            updateUIAfterChange(message) { this.updateStatistics(); this.displayResults(); const jsonOutput = document.getElementById('jsonOutput'); if (jsonOutput.style.display === 'block') { this.convertToJSON(); } document.getElementById('downloadZipBtn').disabled = this.questions.length === 0; if (message) { this.showMessage(message, 'success'); } }
+            showLoading(isLoading, text) { 
+                const loadingDiv = document.getElementById('loading'); 
+                const loadingText = document.getElementById('loading-text');
+                if (text) {
+                    loadingText.textContent = text;
+                } else {
+                    loadingText.textContent = this.language === 'ar' ? 'جاري التحميل...' : 'Loading...';
+                }
+                loadingDiv.style.display = isLoading ? 'block' : 'none'; 
+            }
+            toggleAIButtonLoading(isLoading) { 
+                const btn = document.getElementById('aiEnhanceBtn'); 
+                if (isLoading) { 
+                    btn.disabled = true; 
+                    btn.innerHTML = `<div class="spinner"></div> <span>${this.language === 'ar' ? 'جاري...' : 'Processing...'}</span>`; 
+                } else { 
+                    btn.disabled = false; 
+                    btn.innerHTML = this.language === 'ar' ? '💎 تحسين بالـ AI' : '💎 Enhance with AI'; 
+                } 
+            }
+            showMessage(text, type = 'success') { const container = document.getElementById('messageContainer'); const messageDiv = document.createElement('div'); messageDiv.className = `message ${type}`; messageDiv.textContent = text; container.appendChild(messageDiv); setTimeout(() => { messageDiv.remove(); }, 4000); }
+            updateStatistics() { const total = this.questions.length; let totalConfidence = 0; this.questions.forEach(q => { totalConfidence += (q.confidence || 0.5); }); document.getElementById('totalQuestions').textContent = total; const avgConfidence = total > 0 ? (totalConfidence / total) : 0; const confidencePercent = Math.round(avgConfidence * 100); document.getElementById('confidenceScore').textContent = `${confidencePercent}%`; document.getElementById('detectionQuality').style.width = `${confidencePercent}%`; document.getElementById('classificationAccuracy').style.width = `${Math.round(avgConfidence * 95)}%`; document.getElementById('dataCompleteness').style.width = `${Math.round(avgConfidence * 90)}%`; }
+            
+            displayResults() {
+                const previewContainer = document.getElementById('questionsPreview');
+                previewContainer.innerHTML = '';
+                const placeholder = document.getElementById('preview-placeholder');
+                if (this.questions.length === 0) {
+                    if (placeholder) {
+                        placeholder.style.display = 'flex';
+                    } else {
+                        const newPlaceholder = document.createElement('div');
+                        newPlaceholder.id = 'preview-placeholder';
+                        newPlaceholder.style = "text-align: center; color: #6b7280; padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;";
+                        const text = this.language === 'ar' ? 'ستظهر معاينة الأسئلة هنا بعد التحليل' : 'Questions preview will appear here after analysis';
+                        newPlaceholder.innerHTML = `<div style="font-size: 3em; margin-bottom: 20px;">📋</div><p>${text}</p>`;
+                        previewContainer.appendChild(newPlaceholder);
+                    }
+                    return;
+                }
+
+                if (placeholder) placeholder.style.display = 'none';
+                
+                this.questions.forEach((q, index) => {
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'question-preview';
+                    questionDiv.id = `preview-${q.id}`;
+                    if (q._editing) {
+                        questionDiv.innerHTML = this._renderEditView(q);
+                    } else {
+                        questionDiv.innerHTML = this._renderReadOnlyView(q, index);
+                    }
+                    previewContainer.appendChild(questionDiv);
+                });
+            }
+
+            _renderReadOnlyView(q, index) {
+                const typeConfig = this.questionTypeConfigs[q.type] || { label: 'Unknown', jsonType: 'unknown' };
+                const questionIdText = (this.csvData && this.csvData[index] && this.csvData[index]['Question Id'])
+                    ? this.csvData[index]['Question Id']
+                    : q.id;
+
+                let content = `<div class="question-actions"><button class="action-btn" onclick="app.mergeQuestion('${q.id}')" title="${this.language === 'ar' ? 'دمج مع التالي' : 'Merge with Next'}" ${index === this.questions.length - 1 ? 'disabled' : ''}>🔗</button><button class="action-btn" onclick="app.deleteQuestion('${q.id}')" title="${this.language === 'ar' ? 'حذف السؤال' : 'Delete Question'}">🗑️</button><button class="action-btn" onclick="app.startEditQuestion('${q.id}')" title="${this.language === 'ar' ? 'تعديل السؤال' : 'Edit Question'}">✏️</button></div><div class="question-type-badge type-${typeConfig.jsonType}">${typeConfig.label} | ID: ${String(questionIdText).substring(0,10)}...</div>`;
+                let body = `<h4>${DOMPurify.sanitize(q.question, {USE_PROFILES: {html: true}})}</h4>`;
+                const qType = this.questionTypeConfigs[q.type]?.jsonType;
+                if ((qType === 'mcq' || qType === 'gapText') && q.choices) {
+                    body += q.choices.map((choice, i) => `<div class="choice-item ${i === q.answer ? 'correct' : ''}" onclick="app.setCorrectAnswer('${q.id}', ${i})" title="${this.language === 'ar' ? 'اجعل هذا هو الجواب الصحيح' : 'Set as correct answer'}">${DOMPurify.sanitize(choice)}</div>`).join('');
+                } else if(qType === 'matching' && q.group1 && q.group2) {
+                    body += `<div class="matching-preview"><div class="matching-column">${q.group1.map(item => `<div class="matching-item">${DOMPurify.sanitize(item)}</div>`).join('')}</div><div class="matching-column">${q.group2.map(item => `<div class="matching-item">${DOMPurify.sanitize(item)}</div>`).join('')}</div></div>`;
+                } else if(qType === 'gapText' && q.answers) {
+                    body += `<div class="gapped-text-answers"><strong>${this.language === 'ar' ? 'الإجابات:' : 'Answers:'}</strong> ${DOMPurify.sanitize(q.answers.join(', '))}</div>`;
+                } else if ((qType === 'string' || qType === 'frq') && q.answer) {
+                    body += `<div class="choice-item correct"><strong>${this.language === 'ar' ? 'الإجابة:' : 'Answer:'}</strong> ${DOMPurify.sanitize(Array.isArray(q.answer) ? q.answer.join(', ') : q.answer)}</div>`;
+                }
+                return content + body;
+            }
+
+            _renderEditView(q) { const typeConfig = this.questionTypeConfigs[q.type] || { label: 'Unknown', jsonType: 'unknown' }; let editBody = `<div class="question-type-badge type-${typeConfig.jsonType}">${typeConfig.label} | ID: ${String(q.id).substring(0,10)}...</div><textarea class="edit-textarea" id="edit-q-text-${q.id}">${this.escapeHtml(q.question)}</textarea>`; editBody += `<div style="margin-top:10px;display:flex;gap:10px;"><button class="btn btn-success" onclick="app.saveEditQuestion('${q.id}')">💾 ${this.language === 'ar' ? 'حفظ' : 'Save'}</button><button class="btn btn-secondary" onclick="app.cancelEditQuestion('${q.id}')">❌ ${this.language === 'ar' ? 'إلغاء' : 'Cancel'}</button></div>`; return editBody; }
+            deleteQuestion(id) { const qIndex = this.questions.findIndex(q => q.id === id); if (qIndex > -1) { this.questions.splice(qIndex, 1); this.updateUIAfterChange(this.language === 'ar' ? 'تم حذف السؤال.' : 'Question deleted.'); } }
+            mergeQuestion(id) { const qIndex = this.questions.findIndex(q => q.id === id); if (qIndex > -1 && qIndex < this.questions.length - 1) { const currentQ = this.questions[qIndex]; const nextQ = this.questions[qIndex + 1]; currentQ.question += `\n\n${nextQ.question}`; this.questions.splice(qIndex + 1, 1); this.updateUIAfterChange(this.language === 'ar' ? 'تم دمج السؤالين.' : 'Questions merged.'); } }
+            startEditQuestion(id) { const q = this.questions.find(q => q.id === id); if (q) { q._editing = true; this.displayResults(); } }
+            saveEditQuestion(id) { const q = this.questions.find(q => q.id === id); if (q) { const newText = document.getElementById(`edit-q-text-${id}`).value; q.question = newText; delete q._editing; this.updateUIAfterChange(this.language === 'ar' ? 'تم حفظ التعديلات.' : 'Changes saved.'); } }
+            cancelEditQuestion(id) { const q = this.questions.find(q => q.id === id); if (q) { delete q._editing; this.displayResults(); } }
+            setCorrectAnswer(id, choiceIndex) { const q = this.questions.find(q => q.id === id); if (q && (q.type === 'mcq' || q.type === 'gap_text')) { q.answer = choiceIndex; this.updateUIAfterChange(this.language === 'ar' ? 'تم تحديث الإجابة الصحيحة.' : 'Correct answer updated.'); } }
+            escapeHtml(text) { if (typeof text !== 'string') return text; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+            openCustomizeModal() { document.getElementById('customizeModal').style.display = 'flex'; }
+            closeCustomizeModal() { document.getElementById('customizeModal').style.display = 'none'; }
+            saveCustomization() { this.handleCustomizationChange(); this.closeCustomizeModal(); this.showMessage(this.language === 'ar' ? 'تم حفظ الإعدادات بنجاح' : 'Settings saved successfully', 'success'); }
+            handleCustomizationChange() { 
+                this.customization.category = document.getElementById('categorySelect').value;
+                this.customization.country = document.getElementById('countrySelect').value;
+                this.customization.dialect = document.getElementById('dialectSelect').value;
+                this.customization.lang = document.getElementById('langSelect').value;
+                this.saveSettings();
+                const jsonOutput = document.getElementById('jsonOutput');
+                if (jsonOutput && jsonOutput.style.display === 'block') {
+                    this.convertToJSON();
+                }
+            }
+            saveSettings() { localStorage.setItem('aiq_settings', JSON.stringify({ customization: this.customization, language: this.language })); }
+            loadSettings() { 
+                try { 
+                    const settings = JSON.parse(localStorage.getItem('aiq_settings')); 
+                    if (settings) {
+                        if (settings.customization) this.customization = settings.customization; 
+                        if (settings.language) this.language = settings.language;
+                    }
+                } catch {} 
+            }
+            saveApiKey() { localStorage.setItem('aiq_api_key', document.getElementById('apiKey').value.trim()); }
+            loadApiKey() { const apiKey = localStorage.getItem('aiq_api_key'); if (apiKey) { this.apiKey = apiKey; document.getElementById('apiKey').value = apiKey; } }
+            
+            // ===== Language Switching =====
+            toggleLanguage() {
+                this.language = this.language === 'ar' ? 'en' : 'ar';
+                this.updateInterfaceLanguage();
+                this.saveSettings();
+            }
+
+            updateInterfaceLanguage() {
+                const isAr = this.language === 'ar';
+                document.documentElement.lang = isAr ? 'ar' : 'en';
+                document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+
+                const translations = {
+                    mainTitle: { ar: '🚀 محول الأسئلة الذكي المتطور', en: '🚀 Advanced Smart Question Converter' },
+                    mainSubtitle: { ar: 'حوّل نصوص الأسئلة إلى صيغة JSON متقدمة بضغطة زر', en: 'Convert question texts to advanced JSON format with one click' },
+                    panelTitle1: { ar: '<span style="font-size: 1.5em; line-height: 1;">①</span> اختر نوع السؤال', en: '<span style="font-size: 1.5em; line-height: 1;">①</span> Select Question Type' },
+                    panelTitle2: { ar: '<span style="font-size: 1.5em; line-height: 1;">②</span> أدخل النص', en: '<span style="font-size: 1.5em; line-height: 1;">②</span> Enter Text' },
+                    panelTitle3: { ar: '🔍 تحليل ومخرجات', en: '🔍 Analysis & Output' },
+                    panelTitle4: { ar: '👁️ معاينة الأسئلة', en: '👁️ Questions Preview' },
+                    inputPlaceholder: { ar: 'أدخل الأسئلة هنا...', en: 'Enter questions here...' },
+                    analyzeBtn: { ar: '🤖 تحليل ذكي', en: '🤖 Smart Analyze' },
+                    enhanceBtn: { ar: '💎 تحسين بالـ AI', en: '💎 Enhance with AI' },
+                    convertBtn: { ar: '🔄 تحويل لـ JSON', en: '🔄 Convert to JSON' },
+                    customizeBtn: { ar: '⚙️ تخصيص', en: '⚙️ Customize' },
+                    clearBtn: { ar: '🗑️ مسح الكل', en: '🗑️ Clear All' },
+                    langBtn: { ar: '🌐 English', en: '🌐 العربية' },
+                    loadingText: { ar: 'جاري التحليل...', en: 'Analyzing...' },
+                    analysisLabel1: { ar: 'جودة الكشف:', en: 'Detection Quality:' },
+                    analysisLabel2: { ar: 'دقة التصنيف:', en: 'Classification Accuracy:' },
+                    analysisLabel3: { ar: 'اكتمال البيانات:', en: 'Data Completeness:' },
+                    statsLabel1: { ar: 'إجمالي الأسئلة', en: 'Total Questions' },
+                    statsLabel2: { ar: 'معدل الثقة', en: 'Confidence Score' },
+                    copyBtn: { ar: '📋 نسخ JSON', en: '📋 Copy JSON' },
+                    downloadBtn: { ar: '💾 تحميل', en: '💾 Download' },
+                    downloadZipBtn: { ar: '🗜️ تحميل كـ ZIP', en: '🗜️ Download as ZIP' },
+                    csvBtn: { ar: '📄 CSV', en: '📄 CSV' },
+                    previewPlaceholder: { ar: 'ستظهر معاينة الأسئلة هنا بعد التحليل', en: 'Questions preview will appear here after analysis' },
+                    customizeTitle: { ar: 'تخصيص الإعدادات', en: 'Customize Settings' },
+                    saveBtn: { ar: 'حفظ', en: 'Save' },
+                    csvTitle: { ar: 'CSV Editor', en: 'CSV Editor' },
+                    closeBtn: { ar: 'إغلاق', en: 'Close' },
+                };
+
+                document.getElementById('main-title').innerHTML = translations.mainTitle[this.language];
+                document.getElementById('main-subtitle').innerHTML = translations.mainSubtitle[this.language];
+                document.getElementById('panel-title-1').innerHTML = translations.panelTitle1[this.language];
+                document.getElementById('panel-title-2').innerHTML = translations.panelTitle2[this.language];
+                document.getElementById('panel-title-3').innerHTML = translations.panelTitle3[this.language];
+                document.getElementById('panel-title-4').innerHTML = translations.panelTitle4[this.language];
+                document.getElementById('questionInput').placeholder = translations.inputPlaceholder[this.language];
+                document.getElementById('smart-analyze-btn').innerHTML = translations.analyzeBtn[this.language];
+                document.getElementById('aiEnhanceBtn').innerHTML = translations.enhanceBtn[this.language];
+                document.getElementById('convert-json-btn').innerHTML = translations.convertBtn[this.language];
+                document.getElementById('customizeBtn').innerHTML = translations.customizeBtn[this.language];
+                document.getElementById('clear-all-btn').innerHTML = translations.clearBtn[this.language];
+                document.getElementById('langSwitchBtn').innerHTML = translations.langBtn[this.language];
+                document.getElementById('loading-text').innerHTML = translations.loadingText[this.language];
+                document.getElementById('analysis-label-1').innerHTML = translations.analysisLabel1[this.language];
+                document.getElementById('analysis-label-2').innerHTML = translations.analysisLabel2[this.language];
+                document.getElementById('analysis-label-3').innerHTML = translations.analysisLabel3[this.language];
+                document.getElementById('stats-label-1').innerHTML = translations.statsLabel1[this.language];
+                document.getElementById('stats-label-2').innerHTML = translations.statsLabel2[this.language];
+                document.getElementById('copyBtn').innerHTML = translations.copyBtn[this.language];
+                document.getElementById('downloadBtn').innerHTML = translations.downloadBtn[this.language];
+                document.getElementById('downloadZipBtn').innerHTML = translations.downloadZipBtn[this.language];
+                document.getElementById('csvBtn').innerHTML = translations.csvBtn[this.language];
+                document.querySelector('#preview-placeholder p').innerHTML = translations.previewPlaceholder[this.language];
+                document.getElementById('customize-title').innerHTML = translations.customizeTitle[this.language];
+                document.getElementById('customize-save-btn').innerHTML = translations.saveBtn[this.language];
+                document.getElementById('csv-title').innerHTML = translations.csvTitle[this.language];
+                document.getElementById('csv-save-btn').innerHTML = `💾 ${translations.saveBtn[this.language]}`;
+                document.getElementById('csv-close-btn').innerHTML = `❌ ${translations.closeBtn[this.language]}`;
+                
+                this.displayResults(); // Re-render preview to update tooltips etc.
+            }
+
+            // ===== CSV Logic =====
+            openCSVModal() {
+                if (typeof Handsontable === 'undefined') {
+                    this.showMessage(this.language === 'ar' ? 'خطأ: مكتبة الجداول لم يتم تحميلها.' : 'Error: Table library not loaded.', 'error');
+                    return;
+                }
+                if (this.questions.length === 0) {
+                    this.showMessage(this.language === 'ar' ? 'يجب تحليل الأسئلة أولاً.' : 'Please analyze questions first.', 'warning');
+                    return;
+                }
+
+                const columns = [
+                    { data: 'Question Id', type: 'text' },
+                    { data: 'Lang', type: 'text', readOnly: true },
+                    { data: 'Lesson Id', type: 'text' },
+                    { data: 'Attributes', type: 'text', readOnly: true },
+                    { data: 'Category', type: 'text', readOnly: true },
+                    { data: 'Dialect', type: 'text', readOnly: true }
+                ];
+
+                const saved = localStorage.getItem('aiq_csv_data');
+                let savedData = null;
+                try {
+                    savedData = JSON.parse(saved);
+                    if (!Array.isArray(savedData) || savedData.length !== this.questions.length) {
+                        savedData = null;
+                    }
+                } catch (e) {
+                    savedData = null;
+                }
+
+                if (savedData) {
+                    this.csvData = savedData;
+                } else {
+                    this.csvData = this.questions.map((q, idx) => ({
+                        'Question Id': q.id,
+                        'Lang': this.customization.lang,
+                        'Lesson Id': '',
+                        'Attributes': this.questionTypeConfigs[q.type]?.jsonType || q.type,
+                        'Category': this.customization.category,
+                        'Dialect': this.customization.dialect
+                    }));
+                }
+
+                document.getElementById('csvModalBg').style.display = 'flex';
+
+                if (this.hotInstance) this.hotInstance.destroy();
+                this.hotInstance = new Handsontable(document.getElementById('hotTable'), {
+                    data: this.csvData,
+                    colHeaders: ['Question Id', 'Lang', 'Lesson Id', 'Attributes', 'Category', 'Dialect'],
+                    columns: columns,
+                    rowHeaders: true,
+                    width: '100%',
+                    height: 500,
+                    licenseKey: 'non-commercial-and-evaluation',
+                    manualColumnResize: true,
+                    manualRowResize: true,
+                    stretchH: 'all',
+                    allowInsertRow: false,
+                    allowRemoveRow: false,
+                    contextMenu: true,
+                    afterChange: () => this.validateCSV(),
+                });
+                this.validateCSV();
+            }
+
+            closeCSVModal() {
+                document.getElementById('csvModalBg').style.display = 'none';
+                if (this.hotInstance) {
+                    this.hotInstance.destroy();
+                    this.hotInstance = null;
+                }
+            }
+
+            saveCSVData() {
+                if (this.hotInstance) {
+                    const tableData = this.hotInstance.getData();
+                    this.csvData = tableData.map(row => ({
+                        'Question Id': row[0],
+                        'Lang': row[1],
+                        'Lesson Id': row[2],
+                        'Attributes': row[3],
+                        'Category': row[4],
+                        'Dialect': row[5]
+                    }));
+                    localStorage.setItem('aiq_csv_data', JSON.stringify(this.csvData));
+                    this.showMessage(this.language === 'ar' ? 'تم حفظ بيانات CSV بنجاح' : 'CSV data saved successfully', 'success');
+                    this.closeCSVModal();
+                    this.displayResults();
+                }
+            }
+
+            validateCSV() {
+                if (!this.hotInstance) return;
+                const ids = new Set();
+                let hasDuplicate = false;
+                const data = this.hotInstance.getData();
+                for (let i = 0; i < data.length; i++) {
+                    const id = data[i][0];
+                    if (id !== null && id !== '' && id !== undefined) {
+                        if (ids.has(id.toString())) {
+                            hasDuplicate = true;
+                            break;
+                        }
+                        ids.add(id.toString());
+                    }
+                }
+                const warn = document.getElementById('csvWarning');
+                warn.style.display = hasDuplicate ? 'block' : 'none';
+                warn.textContent = this.language === 'ar' ? 'تحذير: يوجد Question Id مكرر!' : 'Warning: Duplicate Question Id found!';
+            }
+
+            getCSVString() {
+                const header = ['Question Id', 'Lang', 'Lesson Id', 'Attributes', 'Category', 'Dialect'];
+                const rows = this.csvData.map(row =>
+                    header.map(h => {
+                        const cell = row[h] || '';
+                        return `"${cell.toString().replace(/"/g, '""')}"`;
+                    }).join(',')
+                );
+                return [header.join(',')].concat(rows).join('\n');
+            }
+
+            syntaxHighlight(json) { json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => { let cls = 'number'; if (/^"/.test(match)) { cls = /:$/.test(match) ? 'key' : 'string'; } else if (/true|false/.test(match)) { cls = 'boolean'; } else if (/null/.test(match)) { cls = 'null'; } return '<span class="' + cls + '">' + match + '</span>'; }); }
+        }
+
+        const app = new AIQuestionConverter();
+        document.getElementById('apiKey').addEventListener('input', () => app.saveApiKey());
+    </script>
+</body>
+</html>
