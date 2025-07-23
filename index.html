@@ -285,9 +285,9 @@
         .question-type-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; margin-bottom: 10px; }
         .type-mcq { background: #dbeafe; color: #1e40af; }
         .type-matching { background: #e0e7ff; color: #3730a3; }
-        .type-gap_text { background: #d1fae5; color: #065f46; }
+        .type-gaptext { background: #d1fae5; color: #065f46; }
         .type-string { background: #fef3c7; color: #92400e; }
-        .type-free_response { background: #fce7f3; color: #be185d; }
+        .type-frq { background: #fce7f3; color: #be185d; }
         .type-unknown { background: #fee2e2; color: #991b1b; }
         
         .choice-item { padding: 8px 15px; margin: 5px 0; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s ease; }
@@ -490,9 +490,9 @@
                 this.questionTypeConfigs = {
                     'mcq': { label: 'MCQ', jsonType: 'mcq' },
                     'matching': { label: 'Matching', jsonType: 'matching' },
-                    'gap_text': { label: 'Gapped Text', jsonType: 'gap_text' },
+                    'gap_text': { label: 'Gapped Text', jsonType: 'gaptext' },
                     'string': { label: 'String', jsonType: 'string' },
-                    'free_response': { label: 'Free Response', jsonType: 'free_response' }
+                    'free_response': { label: 'Free Response', jsonType: 'frq' }
                 };
 
                 this.loadSettings();
@@ -735,9 +735,9 @@
                 switch (type) {
                     case 'mcq': part = this._transformForMCQ(question); break;
                     case 'matching': part = this._transformForMatching(question); break;
-                    case 'gap_text': part = this._transformForGappedText(question); break;
+                    case 'gaptext': part = this._transformForGappedText(question); break;
                     case 'string': part = this._transformForString(question); break;
-                    case 'free_response': part = this._transformForFreeResponse(question); break;
+                    case 'frq': part = this._transformForFreeResponse(question); break;
                     default: part = this._transformForFreeResponse(question);
                 }
 
@@ -1087,9 +1087,9 @@
                                 <div class="matching-column"><strong>القائمة أ</strong>${group1Html}</div>
                                 <div class="matching-column"><strong>القائمة ب</strong>${group2Html}</div>
                              </div>`;
-                } else if(qType === 'gap_text') {
-                    // For gapped text, we only show the question in the preview, not the answers.
-                    // The question body is already set above, so we don't need to add anything here.
+                } else if(qType === 'gap_text' && q.answers) {
+                    const answersText = q.answers.map(ans => `(${ans.order}) ${ans.value}`).join(', ');
+                    body += `<div class="gapped-text-answers"><strong>${this.language === 'ar' ? 'الإجابات:' : 'Answers:'}</strong> ${DOMPurify.sanitize(answersText)}</div>`;
                 } else if ((qType === 'string' || qType === 'free_response') && q.answer) {
                     body += `<div class="choice-item correct"><strong>${this.language === 'ar' ? 'الإجابة:' : 'Answer:'}</strong> ${DOMPurify.sanitize(Array.isArray(q.answer) ? q.answer.join(', ') : q.answer)}</div>`;
                 }
