@@ -285,9 +285,9 @@
         .question-type-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; margin-bottom: 10px; }
         .type-mcq { background: #dbeafe; color: #1e40af; }
         .type-matching { background: #e0e7ff; color: #3730a3; }
-        .type-gapText { background: #d1fae5; color: #065f46; }
+        .type-gap_text { background: #d1fae5; color: #065f46; }
         .type-string { background: #fef3c7; color: #92400e; }
-        .type-frq { background: #fce7f3; color: #be185d; }
+        .type-free_response { background: #fce7f3; color: #be185d; }
         .type-unknown { background: #fee2e2; color: #991b1b; }
         
         .choice-item { padding: 8px 15px; margin: 5px 0; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s ease; }
@@ -490,9 +490,9 @@
                 this.questionTypeConfigs = {
                     'mcq': { label: 'MCQ', jsonType: 'mcq' },
                     'matching': { label: 'Matching', jsonType: 'matching' },
-                    'gap_text': { label: 'Gapped Text', jsonType: 'gapText' },
+                    'gap_text': { label: 'Gapped Text', jsonType: 'gap_text' },
                     'string': { label: 'String', jsonType: 'string' },
-                    'free_response': { label: 'Free Response', jsonType: 'frq' }
+                    'free_response': { label: 'Free Response', jsonType: 'free_response' }
                 };
 
                 this.loadSettings();
@@ -534,13 +534,15 @@
                 }
                 
                 try {
-                    const questionBlocks = rawText.split(/\n\s*\*{5,}\s*\n|\n\s*\n/).filter(block => block.trim().length > 5);
+                    // Split questions by a clear separator (e.g., '*****' on its own line)
+                    const questionBlocks = rawText.split(/\n\s*\*{5,}\s*\n|\n\s*\n\s*\n/).filter(block => block.trim().length > 5);
                     if (questionBlocks.length === 0) {
-                        this.showMessage(this.language === 'ar' ? 'لم يتم العثور على أسئلة قابلة للتحليل.' : 'No analyzable questions found.', 'warning');
+                        this.showMessage(this.language === 'ar' ? 'لم يتم العثور على أسئلة قابلة للتحليل. الرجاء الفصل بين الأسئلة بأسطر فارغة أو *****.' : 'No analyzable questions found. Please separate questions with blank lines or *****.', 'warning');
                         return;
                     }
 
                     this.questions = questionBlocks.map((block, index) => {
+                        // Use the NEW detailed local parser
                         const parsedQuestion = this._parseLocally(block, this.activeQuestionType);
                         parsedQuestion.id = `temp_${Date.now()}_${index}`;
                         return parsedQuestion;
@@ -551,6 +553,126 @@
                     console.error("Smart Analysis Error:", error);
                     this.showMessage(`${this.language === 'ar' ? 'حدث خطأ أثناء التحليل الذكي: ' : 'Error during smart analysis: '}${error.message}`, 'error');
                 }
+            }
+            
+            _parseLocally(text, type) {
+                const baseQuestion = { id: '', type: type, question: '', confidence: 0.85 };
+                const lines = text.split('\n').filter(l => l.trim() !== '');
+                if (lines.length === 0) return { ...baseQuestion, question: text, confidence: 0.1 };
+                
+                baseQuestion.question = lines[0].trim();
+                let remainingLines = lines.slice(1);
+
+                switch(type) {
+                    case 'mcq':
+                        baseQuestion.choices = [];
+                        baseQuestion.answer = null;
+                        remainingLines.forEach((line, index) => {
+                            let choiceText = line.trim();
+                            if (choiceText.startsWith('*')) {
+                                choiceText = choiceText.substring(1).trim();
+                                baseQuestion.answer = index;
+                            }
+                            choiceText = choiceText.replace(/^\s*([0-9٠-٩]+|[\u0621-\u064A A-Za-z])[\.\-\)]\s*/, '');
+                            baseQuestion.choices.push(choiceText);
+                        });
+                        break;
+
+                    case 'string':
+                        const answerLineString = remainingLines.join(' ').trim();
+                        if (answerLineString.toLowerCase().startsWith('الجواب:')) {
+                            baseQuestion.answer = answerLineString.substring('الجواب:'.length).trim();
+                        } else {
+                            baseQuestion.answer = answerLineString;
+                            baseQuestion.confidence = 0.4;
+                        }
+                        break;
+                        
+                    case 'gap_text':
+                        baseQuestion.answers = [];
+                        let answerSectionIndex = remainingLines.findIndex(l => l.trim().toLowerCase().match(/---\s*(الإجابات|الترتيب)\s*---|^(الترتيب|correct_order):/));
+
+                        if (answerSectionIndex !== -1) {
+                            // New format with explicit ordering
+                            const answerLines = remainingLines.slice(answerSectionIndex + 1);
+                            answerLines.forEach(line => {
+                                const match = line.match(/(\d+)\s*:\s*(.+)/);
+                                if (match) {
+                                    baseQuestion.answers.push({
+                                        order: parseInt(match[1], 10),
+                                        value: match[2].trim()
+                                    });
+                                }
+                            });
+                        } else {
+                            // Old format with implicit ordering
+                            const answerLineGap = remainingLines.join(' ').trim();
+                            if (answerLineGap.toLowerCase().startsWith('الجواب:')) {
+                                const answersRaw = answerLineGap.substring('الجواب:'.length).trim();
+                                baseQuestion.answers = answersRaw.split(',').map((a, i) => ({
+                                    order: i + 1,
+                                    value: a.trim()
+                                }));
+                            } else {
+                                baseQuestion.confidence = 0.4;
+                            }
+                        }
+                        break;
+
+                    case 'matching':
+                        baseQuestion.group1 = [];
+                        baseQuestion.group2 = [];
+                        baseQuestion.answer = [];
+                        
+                        let currentList = null;
+                        remainingLines.forEach(line => {
+                            const l = line.trim().toLowerCase();
+                            if (l.includes('--- القائمة أ ---') || l.includes('--- list a ---')) {
+                                currentList = 'a';
+                            } else if (l.includes('--- القائمة ب ---') || l.includes('--- list b ---')) {
+                                currentList = 'b';
+                            } else if (l.includes('--- الإجابات ---') || l.includes('--- answers ---')) {
+                                currentList = 'answers';
+                            } else {
+                                if (currentList === 'a') {
+                                    baseQuestion.group1.push(line.trim().replace(/^\s*[0-9٠-٩]+[\.\-\)]\s*/, ''));
+                                } else if (currentList === 'b') {
+                                    baseQuestion.group2.push(line.trim().replace(/^\s*[0-9٠-٩]+[\.\-\)]\s*/, ''));
+                                } else if (currentList === 'answers') {
+                                    const match = line.match(/(\d+)\s*:\s*(\d+)/);
+                                    if (match) {
+                                        baseQuestion.answer.push([parseInt(match[1], 10) - 1, parseInt(match[2], 10) - 1]);
+                                    }
+                                }
+                            }
+                        });
+                        break;
+
+                    case 'free_response':
+                        let answerIndex = -1;
+                        remainingLines.forEach((line, i) => {
+                            if (line.trim().toLowerCase().startsWith('الجواب النموذجي:')) {
+                                answerIndex = i;
+                            }
+                        });
+
+                        if (answerIndex !== -1) {
+                            const firstAnswerLine = remainingLines[answerIndex].substring('الجواب النموذجي:'.length).trim();
+                            const restOfAnswer = remainingLines.slice(answerIndex + 1).join('\n');
+                            baseQuestion.answer = (firstAnswerLine + '\n' + restOfAnswer).trim();
+                        } else {
+                            baseQuestion.answer = remainingLines.join('\n');
+                            baseQuestion.confidence = 0.4;
+                        }
+                        break;
+
+                    default:
+                        baseQuestion.answer = remainingLines.join('\n');
+                        baseQuestion.type = 'unknown';
+                        baseQuestion.confidence = 0.2;
+                        break;
+                }
+                return baseQuestion;
             }
 
             async enhanceWithAI() {
@@ -589,50 +711,6 @@
                 }
             }
             
-            _parseLocally(text, type) {
-                const baseQuestion = { id: '', type: type, question: '', confidence: 0.6 };
-                const lines = text.split('\n').filter(l => l.trim() !== '');
-                if (lines.length === 0) return { ...baseQuestion, question: text };
-                
-                const questionNumberRegex = /^\s*([0-9٠-٩]+[\.\-\)]|[\u0621-\u064A][\.\-\)])\s*/;
-                baseQuestion.question = lines[0].replace(questionNumberRegex, '').trim();
-
-                const choiceRegex = /^\s*([0-9٠-٩]+|[\u0621-\u064A A-Za-z])[\.\-\)]\s*/;
-
-                switch(type) {
-                    case 'mcq':
-                    case 'gap_text':
-                        baseQuestion.choices = [];
-                        baseQuestion.answer = null;
-                        
-                        let correctAnswerText = null;
-                        const answerMatch = baseQuestion.question.match(/\((.*?)\)/);
-                        if (answerMatch) {
-                            correctAnswerText = answerMatch[1].trim();
-                            let processedQuestion = baseQuestion.question.replace(/\(.*?\)/, '%%GAP%%');
-                            processedQuestion = processedQuestion.replace(/\s*\.\s*%%GAP%%/, '%%GAP%%.');
-                            baseQuestion.question = processedQuestion.replace(/%%GAP%%/g, '____').trim();
-                        }
-                        
-                        for (let i = 1; i < lines.length; i++) {
-                            let choiceText = lines[i].replace(choiceRegex, '').trim();
-                            if (choiceText.includes('*')) {
-                                choiceText = choiceText.replace(/\*/g, '').trim();
-                                baseQuestion.answer = baseQuestion.choices.length;
-                            }
-                            if (correctAnswerText && choiceText === correctAnswerText) {
-                                baseQuestion.answer = baseQuestion.choices.length;
-                            }
-                            baseQuestion.choices.push(choiceText);
-                        }
-                        break;
-                    default:
-                        baseQuestion.answer = lines.slice(1).join('\n');
-                        break;
-                }
-                return baseQuestion;
-            }
-
             convertToJSON() {
                 if (this.questions.length === 0) {
                     this.showMessage(this.language === 'ar' ? 'لا توجد أسئلة لتحويلها. الرجاء التحليل أولاً.' : 'No questions to convert. Please analyze first.', 'warning');
@@ -650,14 +728,6 @@
                 this.showMessage(this.language === 'ar' ? 'تم تحويل الأسئلة إلى الصيغة المتقدمة بنجاح' : 'Successfully converted to advanced format', 'success');
             }
 
-            _formatStemText(stemText) {
-                const spaceSpan = `<span data-node-type="blank-line" data-node-variation="space">&nbsp;</span>`;
-                if (stemText && stemText.endsWith('.') && !stemText.includes('____') && !stemText.includes('[gap]')) {
-                    return stemText.slice(0, -1).trim() + spaceSpan + '.';
-                }
-                return stemText;
-            }
-
             transformToAdvancedFormat(question, index) {
                 let part;
                 const type = this.questionTypeConfigs[question.type]?.jsonType || 'frq';
@@ -665,9 +735,9 @@
                 switch (type) {
                     case 'mcq': part = this._transformForMCQ(question); break;
                     case 'matching': part = this._transformForMatching(question); break;
-                    case 'gapText': part = this._transformForGappedText(question); break;
+                    case 'gap_text': part = this._transformForGappedText(question); break;
                     case 'string': part = this._transformForString(question); break;
-                    case 'frq': part = this._transformForFreeResponse(question); break;
+                    case 'free_response': part = this._transformForFreeResponse(question); break;
                     default: part = this._transformForFreeResponse(question);
                 }
 
@@ -693,7 +763,7 @@
                         language: this.customization.lang,
                         mapped_id: finalId,
                         source_id: { value: question.id, page_number: null },
-                        description: typeof question.question === 'string' ? question.question.replace(/<[^>]*>?/gm, '').substring(0, 200) : '',
+                        description: typeof part.stem === 'string' ? part.stem.replace(/<[^>]*>?/gm, '').substring(0, 200) : '',
                         has_example: null,
                         parts_count: 1,
                         instances_count: 1,
@@ -703,13 +773,27 @@
                     instance_number: 1
                 };
             }
+            
+            _wrapInHtml(text) {
+                const escape = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+                return `<p class="LexicalTheme__paragraph" dir="auto"><span style="white-space: pre-wrap;">${escape(text)}</span></p>`;
+            }
+            
+            _wrapInHtmlWithSpan(textWithSpan) {
+                // This function is tricky because we don't want to escape the span itself.
+                // We'll split the text by our span, escape the parts, and then rejoin.
+                const blankSpan = '<span data-node-type="blank-line" data-node-variation="space">&nbsp;</span>';
+                const parts = textWithSpan.split(blankSpan);
+                const escapedParts = parts.map(part => part.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'));
+                const newText = escapedParts.join(blankSpan);
+                return `<p class="LexicalTheme__paragraph" dir="auto"><span style="white-space: pre-wrap;">${newText}</span></p>`;
+            }
 
             _transformForMCQ(q) {
-                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
-                const stemText = this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, blankSpan);
+                const stemText = q.question.replace(/_{4,}|\[gap\]/g, '____');
                 return {
                     n: 1,
-                    stem: DOMPurify.sanitize(stemText),
+                    stem: this._wrapInHtml(stemText),
                     type: 'mcq',
                     choices: (q.choices || []).map((choice, i) => ({
                         type: i === q.answer ? 'key' : 'distractor',
@@ -719,7 +803,7 @@
                         values: [],
                         last_order: false,
                         fixed_order: i + 1,
-                        html_content: DOMPurify.sanitize(choice),
+                        html_content: this._wrapInHtml(choice),
                         correct_order: i + 1 
                     })),
                     subtype: null,
@@ -728,40 +812,61 @@
             }
 
             _transformForMatching(q) {
-                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
-                const stemText = this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, blankSpan);
                 const part = {
                     n: 1,
-                    stem: DOMPurify.sanitize(stemText),
+                    stem: this._wrapInHtml(q.question),
                     type: 'matching',
                     choices: [],
                     subtype: null,
                     standalone: false
                 };
-                const answersMap = new Map((q.answer || []).map(pair => [pair[0], pair[1]]));
+                
+                const answersMap = new Map(q.answer || []); // G1_idx -> G2_idx
+                const reverseAnswersMap = new Map((q.answer || []).map(([g1, g2]) => [g2, g1])); // G2_idx -> G1_idx
+
                 (q.group1 || []).forEach((item, i) => {
+                    const partnerIndexInG2 = answersMap.get(i);
+                    const correctOrder = (partnerIndexInG2 !== undefined) ? partnerIndexInG2 + 1 : -1;
+
                     part.choices.push({
-                        type: 'distractor', group: 1, index: i, values: [], last_order: false, fixed_order: i + 1,
-                        html_content: DOMPurify.sanitize(item),
-                        correct_order: (answersMap.get(i) ?? -1) + 1
+                        type: 'distractor',
+                        unit: null,
+                        group: 1,
+                        index: i,
+                        values: [],
+                        last_order: false,
+                        fixed_order: i + 1,
+                        html_content: this._wrapInHtml(item),
+                        correct_order: correctOrder
                     });
                 });
+
                 (q.group2 || []).forEach((item, i) => {
+                    const partnerIndexInG1 = reverseAnswersMap.get(i);
+                    const correctOrder = (partnerIndexInG1 !== undefined) ? partnerIndexInG1 + 1 : -1;
+
                     part.choices.push({
-                        type: 'distractor', group: 2, index: i, values: [], last_order: false, fixed_order: i + 1,
-                        html_content: DOMPurify.sanitize(item),
-                        correct_order: i + 1
+                        type: 'distractor',
+                        unit: null,
+                        group: 2,
+                        index: i,
+                        values: [],
+                        last_order: false,
+                        fixed_order: i + 1,
+                        html_content: this._wrapInHtml(item),
+                        correct_order: correctOrder
                     });
                 });
                 return part;
             }
 
             _transformForGappedText(q) {
-                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
-                const stemText = this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, blankSpan);
+                const blankSpan = '<span data-node-type="blank-line" data-node-variation="space">&nbsp;</span>';
+                const stemTextWithSpan = q.question.replace(/_{4,}|\[gap\]/g, blankSpan);
+
                 const part = {
                     n: 1,
-                    stem: DOMPurify.sanitize(stemText),
+                    stem: this._wrapInHtmlWithSpan(stemTextWithSpan),
                     type: 'gapText',
                     choices: [],
                     subtype: null,
@@ -772,25 +877,23 @@
                     part.choices = (q.choices || []).map((choice, i) => ({
                         type: i === q.answer ? 'key' : 'distractor',
                         unit: null, group: 1, index: i, values: [], last_order: false, fixed_order: i + 1,
-                        html_content: DOMPurify.sanitize(choice),
+                        html_content: this._wrapInHtml(choice),
                         correct_order: i + 1
                     }));
                 } else {
-                    part.gap_text_keys = (q.answers || []).map((ans, i) => ({
-                        value: ans,
-                        correct_order: i + 1
+                    part.gap_text_keys = (q.answers || []).map(ans => ({
+                        value: ans.value,
+                        correct_order: ans.order
                     }));
                 }
                 return part;
             }
             
-            // *** FIXED FUNCTION: Now replaces underscores with span for String type ***
             _transformForString(q) {
-                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
-                const stemText = this._formatStemText(q.question).replace(/_{2,}|\[gap\]/g, blankSpan);
+                const stemText = q.question.replace(/_{4,}|\[gap\]/g, '____');
                 return {
                     n: 1,
-                    stem: DOMPurify.sanitize(stemText, { USE_PROFILES: { html: true } }),
+                    stem: this._wrapInHtml(stemText),
                     type: 'string',
                     answer: Array.isArray(q.answer) ? q.answer : [q.answer],
                     choices: null,
@@ -799,15 +902,13 @@
                 };
             }
 
-            // *** FIXED FUNCTION: Bypasses _formatStemText for essay questions but still replaces underscores ***
             _transformForFreeResponse(q) {
-                const blankSpan = '<span data-node-type="blank-line" data-node-variation="gap">&nbsp;</span>';
-                const stemText = q.question.replace(/_{2,}|\[gap\]/g, blankSpan);
+                const stemText = q.question.replace(/_{4,}|\[gap\]/g, '____');
                 return {
                     n: 1,
-                    stem: DOMPurify.sanitize(stemText), // Directly sanitize and replace underscores
+                    stem: this._wrapInHtml(stemText),
                     type: 'frq',
-                    answer: DOMPurify.sanitize(q.answer),
+                    answer: q.answer,
                     choices: [],
                     subtype: null,
                     standalone: false
@@ -816,7 +917,7 @@
 
             getAIPromptForRefinement(typeKey, jsonData) {
                  return `You are an expert system for structuring test questions.
-                    Task: I have parsed some raw text using a simple script and generated the following JSON array. It may contain errors or be incomplete.
+                    Task: I have parsed some raw text using a script and generated the following JSON array. It may contain errors or be incomplete.
                     Please analyze this JSON, correct any mistakes in parsing, and refine it. The original question type was identified as "${typeKey}".
                     
                     Input JSON:
@@ -974,14 +1075,22 @@
 
                 let content = `<div class="question-actions"><button class="action-btn" onclick="app.mergeQuestion('${q.id}')" title="${this.language === 'ar' ? 'دمج مع التالي' : 'Merge with Next'}" ${index === this.questions.length - 1 ? 'disabled' : ''}>🔗</button><button class="action-btn" onclick="app.deleteQuestion('${q.id}')" title="${this.language === 'ar' ? 'حذف السؤال' : 'Delete Question'}">🗑️</button><button class="action-btn" onclick="app.startEditQuestion('${q.id}')" title="${this.language === 'ar' ? 'تعديل السؤال' : 'Edit Question'}">✏️</button></div><div class="question-type-badge type-${typeConfig.jsonType}">${typeConfig.label} | ID: ${String(questionIdText).substring(0,10)}...</div>`;
                 let body = `<h4>${DOMPurify.sanitize(q.question, {USE_PROFILES: {html: true}})}</h4>`;
-                const qType = this.questionTypeConfigs[q.type]?.jsonType;
-                if ((qType === 'mcq' || qType === 'gapText') && q.choices) {
+                
+                const qType = q.type;
+
+                if (qType === 'mcq' && q.choices) {
                     body += q.choices.map((choice, i) => `<div class="choice-item ${i === q.answer ? 'correct' : ''}" onclick="app.setCorrectAnswer('${q.id}', ${i})" title="${this.language === 'ar' ? 'اجعل هذا هو الجواب الصحيح' : 'Set as correct answer'}">${DOMPurify.sanitize(choice)}</div>`).join('');
                 } else if(qType === 'matching' && q.group1 && q.group2) {
-                    body += `<div class="matching-preview"><div class="matching-column">${q.group1.map(item => `<div class="matching-item">${DOMPurify.sanitize(item)}</div>`).join('')}</div><div class="matching-column">${q.group2.map(item => `<div class="matching-item">${DOMPurify.sanitize(item)}</div>`).join('')}</div></div>`;
-                } else if(qType === 'gapText' && q.answers) {
-                    body += `<div class="gapped-text-answers"><strong>${this.language === 'ar' ? 'الإجابات:' : 'Answers:'}</strong> ${DOMPurify.sanitize(q.answers.join(', '))}</div>`;
-                } else if ((qType === 'string' || qType === 'frq') && q.answer) {
+                    let group1Html = q.group1.map((item, i) => `<div class="matching-item">${i+1}. ${DOMPurify.sanitize(item)}</div>`).join('');
+                    let group2Html = q.group2.map((item, i) => `<div class="matching-item">${i+1}. ${DOMPurify.sanitize(item)}</div>`).join('');
+                    body += `<div class="matching-preview">
+                                <div class="matching-column"><strong>القائمة أ</strong>${group1Html}</div>
+                                <div class="matching-column"><strong>القائمة ب</strong>${group2Html}</div>
+                             </div>`;
+                } else if(qType === 'gap_text') {
+                    // For gapped text, we only show the question in the preview, not the answers.
+                    // The question body is already set above, so we don't need to add anything here.
+                } else if ((qType === 'string' || qType === 'free_response') && q.answer) {
                     body += `<div class="choice-item correct"><strong>${this.language === 'ar' ? 'الإجابة:' : 'Answer:'}</strong> ${DOMPurify.sanitize(Array.isArray(q.answer) ? q.answer.join(', ') : q.answer)}</div>`;
                 }
                 return content + body;
