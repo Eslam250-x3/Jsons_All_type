@@ -553,12 +553,19 @@
                     document.getElementById('customize-save-btn').addEventListener('click', () => this.saveCustomization());
 
                     document.getElementById('questionsPreview').addEventListener('click', (event) => {
-                        const target = event.target.closest('.action-btn.delete-btn');
+                        const target = event.target.closest('.action-btn');
                         if (!target) return;
+
                         const questionPreview = target.closest('.question-preview');
                         if (!questionPreview) return;
+                        
                         const questionId = questionPreview.id.replace('preview-', '');
-                        this.deleteQuestion(questionId);
+
+                        if (target.classList.contains('delete-btn')) {
+                            this.deleteQuestion(questionId);
+                        } else if (target.classList.contains('edit-btn')) {
+                            this.startEditQuestion(questionId);
+                        }
                     });
                 }
 
@@ -700,23 +707,30 @@
                 }
 
                 _parsePartWithTags(partBlock, globalMetadata) {
-                    let part = { type: globalMetadata.type || this.activeQuestionType || 'unknown' };
-                    let currentTag = null;
+                    const lines = partBlock.trim().split('\n');
+                    const partMetadata = {};
                     let content = {};
+                    let currentTag = null;
+                    let contentStartIndex = 0;
 
-                    partBlock.trim().split('\n').forEach(line => {
-                        const tagMatch = line.trim().match(/^\[([A-Z_]+)\]$/);
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        const tagMatch = line.match(/^\[([A-Z_]+)\]$/);
+                        const metaMatch = line.match(/^\s*(\w+):\s*(.*)/);
+
                         if (tagMatch) {
                             currentTag = tagMatch[1].toUpperCase();
                             content[currentTag] = "";
+                            if (contentStartIndex === 0) contentStartIndex = i + 1;
+                        } else if (metaMatch && !currentTag) {
+                            partMetadata[metaMatch[1].toLowerCase()] = metaMatch[2].trim();
                         } else if (currentTag) {
                             content[currentTag] += line + '\n';
-                        } else if (!content.STEM) {
-                           content.STEM = (content.STEM || '') + line + '\n';
                         }
-                    });
-
-                    part.stem = content.STEM ? content.STEM.trim() : '';
+                    }
+                    
+                    let part = { ...partMetadata, type: partMetadata.type || globalMetadata.type || this.activeQuestionType };
+                    part.stem = content.STEM ? content.STEM.trim() : lines.slice(contentStartIndex).join('\n').trim();
                     
                     switch(part.type) {
                         case 'oq':
@@ -907,11 +921,15 @@
                         return;
                     }
                     if (placeholder) placeholder.style.display = 'none';
-                    this.questions.forEach((q) => {
+                    this.questions.forEach((q, index) => {
                         const questionDiv = document.createElement('div');
                         questionDiv.className = 'question-preview';
                         questionDiv.id = `preview-${q.metadata.id}`;
-                        questionDiv.innerHTML = this._renderReadOnlyView(q);
+                        if (q._editing) {
+                            questionDiv.innerHTML = this._renderEditView(q, index);
+                        } else {
+                            questionDiv.innerHTML = this._renderReadOnlyView(q, index);
+                        }
                         previewContainer.appendChild(questionDiv);
                     });
                     if (typeof MathLive !== 'undefined' && MathLive.renderMathInElement) {
@@ -921,15 +939,22 @@
                     }
                 }
 
-                _renderReadOnlyView(q) {
+                _renderReadOnlyView(q, index) {
                     const lang = q.metadata.language || 'ar';
-                    let html = `<div class="question-actions"><button class="action-btn delete-btn" title="حذف">🗑️</button></div>`;
+                    const csvRow = this.csvData[index];
+                    const questionIdText = (csvRow && csvRow['Question Id']) ? csvRow['Question Id'] : q.metadata.id;
+
+                    let html = `<div class="question-actions">
+                        <button class="action-btn edit-btn" title="تعديل">✏️</button>
+                        <button class="action-btn delete-btn" title="حذف">🗑️</button>
+                    </div>`;
+
                     if (q.statement) {
                         html += `<div class="statement-preview">${this.processTextForHtml(q.statement, lang)}</div>`;
                     }
                     q.parts.forEach((p) => {
                         html += `<div class="part-preview">`;
-                        html += `<div class="question-type-badge type-${p.type}">${this.questionTypeConfigs[p.type]?.label || p.type}</div>`;
+                        html += `<div class="question-type-badge type-${p.type}">${this.questionTypeConfigs[p.type]?.label || p.type} | ID: ${questionIdText}</div>`;
                         html += `<div>${this.processTextForHtml(p.stem, lang)}</div>`;
                         if (p.type === 'oq' || p.type === 'mcq' || p.type === 'mrq') {
                             const correctAnswers = new Set(Array.isArray(p.answer) ? p.answer : [p.answer]);
@@ -946,6 +971,46 @@
                     return html;
                 }
                 
+                _renderEditView(q, index) {
+                    const originalBlock = this.questions[index]._originalBlock || '';
+                    let html = `<textarea class="edit-textarea" id="edit-q-text-${q.metadata.id}">${originalBlock}</textarea>`;
+                    html += `<div style="margin-top:10px;display:flex;gap:10px;">
+                        <button class="btn btn-success" onclick="app.saveEditQuestion('${q.metadata.id}')">💾 حفظ</button>
+                        <button class="btn btn-secondary" onclick="app.cancelEditQuestion('${q.metadata.id}')">❌ إلغاء</button>
+                    </div>`;
+                    return html;
+                }
+                
+                startEditQuestion(id) {
+                    const qIndex = this.questions.findIndex(q => q.metadata.id === id);
+                    if (qIndex > -1) {
+                        this.questions[qIndex]._editing = true;
+                        // We need to reconstruct the original text block for editing
+                        // This is a simplification; a more robust solution would store the original block on parse
+                        this.questions[qIndex]._originalBlock = "لا يمكن عرض النص الأصلي حاليًا. يرجى لصق النص الجديد.";
+                        this.displayResults();
+                    }
+                }
+
+                saveEditQuestion(id) {
+                    const qIndex = this.questions.findIndex(q => q.metadata.id === id);
+                    if (qIndex > -1) {
+                        const newText = document.getElementById(`edit-q-text-${id}`).value;
+                        const newQuestionObject = this._parseBlock(newText, qIndex);
+                        this.questions[qIndex] = newQuestionObject;
+                        delete this.questions[qIndex]._editing;
+                        this.updateUIAfterChange('تم حفظ التعديلات.');
+                    }
+                }
+
+                cancelEditQuestion(id) {
+                    const q = this.questions.find(q => q.metadata.id === id);
+                    if (q) {
+                        delete q._editing;
+                        this.displayResults();
+                    }
+                }
+
                 deleteQuestion(id) {
                     const qIndex = this.questions.findIndex(q => q.metadata.id === id);
                     if (qIndex > -1) {
