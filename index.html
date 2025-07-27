@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محول الأسئلة الذكي المتطور - النسخة النهائية المدمجة</title>
+    <!-- CSS libraries remain in the head -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.min.css" />
+    <style>
+        /* --- Basic Setup --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Main Container --- */
+        .container {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .ai-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            backdrop-filter: blur(10px);
+        }
+
+        /* --- Content Layout --- */
+        .content {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel h3 {
+            color: #4f46e5;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .question-type-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .q-type-btn {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            font-weight: 600;
+            color: #475569;
+            text-align: center;
+        }
+
+        .q-type-btn:hover {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .q-type-btn.active {
+            background-color: #e0e7ff;
+            border-color: #4f46e5;
+            color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .input-section textarea, .edit-textarea {
+            width: 100%;
+            min-height: 250px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: white;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+        }
+
+        .input-section textarea:focus, .edit-textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .api-key-section {
+            margin-top: 15px;
+        }
+
+        .api-key-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .api-key-section input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .controls .btn { flex-grow: 1; }
+
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover:before { left: 100%; }
+        .btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+        .btn-primary { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3); }
+        .btn-secondary { background: #f3f4f6; color: #374151; border: 2px solid #d1d5db; }
+        .btn-secondary:hover:not(:disabled) { background: #e5e7eb; border-color: #9ca3af; }
+        .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+        .btn-ai { background: linear-gradient(135deg, #ec4899 0%, #d946ef 100%); color: white; }
+        .btn-ai:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3); }
+
+        .json-output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #334155;
+            flex-grow: 1;
+            margin-top: 15px;
+        }
+
+        .json-output .key { color: #60a5fa; }
+        .json-output .string { color: #34d399; }
+        .json-output .number { color: #fbbf24; }
+        .json-output .boolean { color: #f87171; }
+        .json-output .null { color: #a78bfa; }
+        
+        .analysis-section { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .analysis-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.9em; }
+        .analysis-item:last-child { border-bottom: none; }
+        .confidence-bar { width: 100px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+        .confidence-fill { height: 100%; background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981); border-radius: 4px; transition: width 0.5s ease-in-out; }
+
+        #questionsPreview { flex-grow: 1; overflow-y: auto; max-height: 70vh; }
+        .question-preview { background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); animation: fadeIn 0.5s ease; position: relative; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .question-actions { position: absolute; top: 10px; left: 10px; display: none; gap: 8px; z-index: 10; }
+        .question-preview:hover .question-actions { display: flex; }
+        .action-btn { background: rgba(249, 250, 251, 0.8); border: 1px solid #d1d5db; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; backdrop-filter: blur(2px); }
+        .action-btn:hover { background: #4f46e5; border-color: #4f46e5; color: white; transform: scale(1.1); }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; background: #e5e7eb; }
+        
+        .question-preview h4, .question-preview .statement-preview { color: #374151; margin-bottom: 10px; font-size: 1.1em; line-height: 1.5; }
+        .part-preview { border-top: 2px dashed #a5b4fc; margin-top: 15px; padding-top: 15px; }
+        .part-preview h5 { color: #4338ca; font-size: 1em; margin-bottom: 8px; }
+
+        .question-type-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; margin-bottom: 10px; }
+        .type-mcq { background: #dbeafe; color: #1e40af; }
+        .type-mrq { background: #e0e7ff; color: #3730a3; }
+        .type-matching { background: #e0e7ff; color: #3730a3; }
+        .type-gapText { background: #d1fae5; color: #065f46; }
+        .type-string { background: #fef3c7; color: #92400e; }
+        .type-frq { background: #fce7f3; color: #be185d; }
+        .type-frq_ai { background: #fce7f3; color: #be185d; }
+        .type-oq { background: #fef9c3; color: #854d0e; }
+        .type-input_box { background: #f3e8ff; color: #6b21a8; }
+        .type-unknown { background: #fee2e2; color: #991b1b; }
+        
+        .choice-item { padding: 8px 15px; margin: 5px 0; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s ease; }
+        .choice-item:hover { background: #f3f4f6; border-color: #4f46e5; }
+        .choice-item.correct { background: #dcfce7; border-color: #16a34a; color: #15803d; font-weight: bold; }
+        .choice-item.correct::before { content: '✔ '; color: #15803d; }
+
+        .matching-preview { display: flex; gap: 20px; }
+        .matching-column { flex: 1; }
+        .matching-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 8px; }
+        
+        .gapped-text-answers { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc; }
+        .gapped-text-answers strong { color: #4f46e5; }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb; transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08); }
+        .stat-card h4 { color: #4f46e5; margin-bottom: 10px; font-size: 0.9em; }
+        .stat-card span { font-size: 2em; font-weight: bold; color: #1f2937; }
+
+        .loading { display: none; text-align: center; padding: 20px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        .btn .spinner { width: 20px; height: 20px; margin: 0; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .message-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .message { padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); animation: slideIn 0.5s ease, fadeOut 0.5s ease 3.5s forwards; font-weight: 500; min-width: 300px; text-align: center; }
+        .message.error { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+        .message.success { background: #dcfce7; color: #065f46; border: 1px solid #a7f3d0; }
+        .message.warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        @keyframes slideIn { from { transform: translateY(-50px) translateX(-50%); opacity: 0; } to { transform: translateY(0) translateX(-50%); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-20px) translateX(-50%); } }
+        
+        #csvModalBg {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.25); z-index: 3000; align-items: center; justify-content: center;
+        }
+        #csvModal {
+            background: white; border-radius: 16px; max-width: 1200px; width: 95vw; padding: 32px 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15); position: relative; min-height: 600px; min-width: 900px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #csvModal .hot-container { margin-bottom: 18px; width: 100%; }
+        #csvModal .btn { min-width: 120px; }
+        #csvModal .csv-warning { color: #dc2626; font-weight: bold; margin-bottom: 10px; }
+        
+        /* NEW: Styles for Math Fields */
+        math-field {
+            border: 1px solid #ddd;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 1.1em;
+            display: inline-block;
+            background: #f9f9f9;
+        }
+
+        @media (max-width: 1200px) { .content { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) { body { padding: 10px; } .content { grid-template-columns: 1fr; padding: 20px; } .header h1 { font-size: 2em; } .header p { font-size: 1em; } .controls { flex-direction: column; } .btn { width: 100%; } .question-type-selector { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div id="messageContainer" class="message-container"></div>
+    <div class="container">
+        <div class="header">
+            <div class="ai-badge">🤖 AI Powered</div>
+            <h1 id="main-title">🚀 محول الأسئلة الذكي المتطور</h1>
+            <p id="main-subtitle">حوّل نصوص الأسئلة إلى صيغة JSON متقدمة بضغطة زر</p>
+        </div>
+
+        <div class="content">
+            <!-- Input Panel -->
+            <div class="panel">
+                <!-- RE-ADDED: Question Type Selector -->
+                <h3 id="panel-title-1"><span style="font-size: 1.5em; line-height: 1;">①</span> اختر نوع السؤال</h3>
+                <div id="questionTypeSelector" class="question-type-selector">
+                    <!-- Buttons will be dynamically inserted here -->
+                </div>
+
+                <h3 id="panel-title-2" style="margin-top: 20px;"><span style="font-size: 1.5em; line-height: 1;">②</span> أدخل النص</h3>
+                <div class="input-section">
+                    <textarea id="questionInput" placeholder="أدخل الأسئلة هنا...
+يمكنك استخدام الصيغة المتقدمة (مع id, type) أو لصق النص مباشرة بعد اختيار النوع من الأعلى."></textarea>
+                </div>
+                <div class="api-key-section">
+                    <input type="password" id="apiKey" placeholder="🔑 أدخل مفتاح Gemini API هنا">
+                </div>
+                <div class="controls">
+                    <button id="smart-analyze-btn" class="btn btn-primary">🤖 تحليل ذكي</button>
+                    <button id="aiEnhanceBtn" class="btn btn-ai">💎 تحسين بالـ AI</button>
+                </div>
+                 <div class="controls">
+                    <button id="convert-json-btn" class="btn btn-success">🔄 تحويل لـ JSON</button>
+                    <button id="customizeBtn" class="btn btn-secondary">⚙️ تخصيص</button>
+                    <button id="clear-all-btn" class="btn btn-secondary">🗑️ مسح الكل</button>
+                    <button id="langSwitchBtn" class="btn btn-warning">🌐 English</button>
+                </div>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p id="loading-text">جاري التحليل...</p>
+                </div>
+            </div>
+
+            <!-- Analysis & Output Panel -->
+            <div class="panel">
+                <h3 id="panel-title-3">🔍 تحليل ومخرجات</h3>
+                <div class="analysis-section" id="analysisSection">
+                    <div class="analysis-item"><span id="analysis-label-1">جودة الكشف:</span><div class="confidence-bar"><div id="detectionQuality" class="confidence-fill" style="width: 0%"></div></div></div>
+                    <div class="analysis-item"><span id="analysis-label-2">دقة التصنيف:</span><div class="confidence-bar"><div id="classificationAccuracy" class="confidence-fill" style="width: 0%"></div></div></div>
+                    <div class="analysis-item"><span id="analysis-label-3">اكتمال البيانات:</span><div class="confidence-bar"><div id="dataCompleteness" class="confidence-fill" style="width: 0%"></div></div></div>
+                </div>
+                <div class="stats" id="stats">
+                    <div class="stat-card"><h4 id="stats-label-1">إجمالي الأسئلة</h4><span id="totalQuestions">0</span></div>
+                    <div class="stat-card"><h4 id="stats-label-2">معدل الثقة</h4><span id="confidenceScore">0%</span></div>
+                </div>
+                <div class="json-output" id="jsonOutput" style="display: none;"></div>
+                <div class="controls" style="margin-top: auto;">
+                    <button id="copyBtn" class="btn btn-secondary" disabled>📋 نسخ JSON</button>
+                    <button id="downloadBtn" class="btn btn-warning" disabled>💾 تحميل</button>
+                    <button id="downloadZipBtn" class="btn btn-warning" disabled>🗜️ تحميل كـ ZIP</button>
+                    <button id="csvBtn" class="btn btn-secondary" disabled>📄 CSV</button>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="panel">
+                <h3 id="panel-title-4">👁️ معاينة الأسئلة</h3>
+                <div id="questionsPreview">
+                    <div id="preview-placeholder" style="text-align: center; color: #6b7280; padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">📋</div>
+                        <p>ستظهر معاينة الأسئلة هنا بعد التحليل</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ADDED: Customize Modal -->
+    <div id="customizeModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:2000; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:16px; max-width:400px; width:90vw; padding:32px 24px; box-shadow:0 8px 32px rgba(0,0,0,0.15); position:relative;">
+            <button id="customize-modal-close-btn" style="position:absolute; top:12px; left:12px; background:none; border:none; font-size:1.5em; cursor:pointer;">&times;</button>
+            <h2 id="customize-title" style="text-align:center; margin-bottom:24px; color:#4f46e5;">تخصيص الإعدادات</h2>
+            <div style="margin-bottom:18px;">
+                <label for="categorySelect" style="font-weight:bold;">Category</label>
+                <select id="categorySelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px;">
+                    <option value="lesson" selected>lesson</option>
+                    <option value="exam">exam</option>
+                </select>
+            </div>
+            <div style="margin-bottom:18px;">
+                <label for="langSelect" style="font-weight:bold;">Lang</label>
+                <select id="langSelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px;">
+                    <option value="ar" selected>ar</option>
+                    <option value="en">en</option>
+                </select>
+            </div>
+            <div style="margin-bottom:18px;">
+                <label for="countrySelect" style="font-weight:bold;">Country</label>
+                <select id="countrySelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px;">
+                    <option value="eg" selected>eg</option>
+                    <option value="sa">sa</option>
+                    <option value="ae">ae</option>
+                    <option value="kw">kw</option>
+                    <option value="qa">qa</option>
+                    <option value="bh">bh</option>
+                    <option value="om">om</option>
+                </select>
+            </div>
+            <div style="margin-bottom:24px;">
+                <label for="dialectSelect" style="font-weight:bold;">Dialect</label>
+                <select id="dialectSelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px;">
+                    <option value="Modern_standard" selected>Modern_standard</option>
+                </select>
+            </div>
+            <button id="customize-save-btn" class="btn btn-primary" style="width:100%;">حفظ</button>
+        </div>
+    </div>
+
+    <!-- Handsontable CSV Modal -->
+    <div id="csvModalBg" style="display:none;">
+        <div id="csvModal">
+            <button id="csv-modal-close-btn" style="position:absolute; top:12px; left:12px; background:none; border:none; font-size:1.5em; cursor:pointer;">&times;</button>
+            <h2 id="csv-title" style="text-align:center; margin-bottom:18px; color:#4f46e5;">CSV Editor</h2>
+            <div class="csv-warning" id="csvWarning" style="display:none;"></div>
+            <div id="hotTable" class="hot-container"></div>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:18px;">
+              <button id="csv-save-btn" class="btn btn-success">💾 حفظ</button>
+              <button id="csv-close-btn" class="btn btn-secondary">❌ إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- All scripts are moved to the end of the body for robust loading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.min.js"></script>
+    <script src="https://unpkg.com/mathlive"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            class AIQuestionConverter {
+                constructor() {
+                    this.questions = [];
+                    this.isAIProcessing = false;
+                    this.jsonForExport = '';
+                    this.language = 'ar';
+                    this.apiKey = '';
+                    this.csvData = [];
+                    this.hotInstance = null;
+                    this.activeQuestionType = 'mcq';
+                    this.customization = { category: 'lesson', country: 'eg', dialect: 'Modern_standard', lang: 'ar' };
+
+                    this.questionTypeConfigs = {
+                        'mcq': { label: 'MCQ', jsonType: 'mcq' },
+                        'mrq': { label: 'MRQ', jsonType: 'mrq' },
+                        'matching': { label: 'Matching', jsonType: 'matching' },
+                        'gapText': { label: 'Gapped Text', jsonType: 'gapText' },
+                        'string': { label: 'String', jsonType: 'string' },
+                        'frq': { label: 'Free Response', jsonType: 'frq' },
+                        'oq': { label: 'Opinion (OQ)', jsonType: 'opinion' },
+                        'frq_ai': { label: 'FRQ (AI)', jsonType: 'frq_ai' },
+                        'input_box': { label: 'Input Box', jsonType: 'input_box' }
+                    };
+
+                    this.ARABIC_LATEX_MAP = {
+                        "F(x)": "\\dotlessqaft (\\seen)", "Q'": "\\dotlessnoont \\prime", 'N': '\\tah', 'Z': '\\sadt',
+                        'Q': '\\dotlessnoont', 'X': '\\seent', 'Y': '\\sadt', 'x': '\\seen', 'y': '\\sad',
+                        'z': '\\ain', 'A': '\\alt{\\alef}', 'B': '\\beh', 'C': '\\jeemi', 'D': '\\dal',
+                        'E': '\\hehi', 'F': '\\waw', 'M': '\\meem', 'n': '\\noon', 'K': '\\kaf',
+                        'L': '\\lam', 's': '\\feh', 'O': '\\waw', 'R': '\\haht', 'r': '\\aint',
+                    };
+
+                    this.loadSettings();
+                    this.loadApiKey();
+                    this.renderQuestionTypeButtons();
+                    this.setActiveQuestionType(this.activeQuestionType);
+                    this.updateInterfaceLanguage();
+                    this.bindEvents();
+                }
+                
+                bindEvents() {
+                    document.getElementById('smart-analyze-btn').addEventListener('click', () => this.smartAnalyze());
+                    document.getElementById('aiEnhanceBtn').addEventListener('click', () => this.enhanceWithAI());
+                    document.getElementById('convert-json-btn').addEventListener('click', () => this.convertToJSON());
+                    document.getElementById('clear-all-btn').addEventListener('click', () => this.clearAll());
+                    document.getElementById('langSwitchBtn').addEventListener('click', () => this.toggleLanguage());
+                    document.getElementById('copyBtn').addEventListener('click', () => this.copyJSON());
+                    document.getElementById('downloadBtn').addEventListener('click', () => this.downloadJSON());
+                    document.getElementById('downloadZipBtn').addEventListener('click', () => this.downloadZip());
+                    document.getElementById('csvBtn').addEventListener('click', () => this.openCSVModal());
+                    document.getElementById('csv-modal-close-btn').addEventListener('click', () => this.closeCSVModal());
+                    document.getElementById('csv-save-btn').addEventListener('click', () => this.saveCSVData());
+                    document.getElementById('csv-close-btn').addEventListener('click', () => this.closeCSVModal());
+                    document.getElementById('apiKey').addEventListener('input', () => this.saveApiKey());
+                    document.getElementById('customizeBtn').addEventListener('click', () => this.openCustomizeModal());
+                    document.getElementById('customize-modal-close-btn').addEventListener('click', () => this.closeCustomizeModal());
+                    document.getElementById('customize-save-btn').addEventListener('click', () => this.saveCustomization());
+
+                    document.getElementById('questionsPreview').addEventListener('click', (event) => {
+                        const target = event.target.closest('.action-btn.delete-btn');
+                        if (!target) return;
+                        const questionPreview = target.closest('.question-preview');
+                        if (!questionPreview) return;
+                        const questionId = questionPreview.id.replace('preview-', '');
+                        this.deleteQuestion(questionId);
+                    });
+                }
+
+                renderQuestionTypeButtons() {
+                    const container = document.getElementById('questionTypeSelector');
+                    if (!container) return;
+                    container.innerHTML = '';
+                    for (const typeKey in this.questionTypeConfigs) {
+                        const config = this.questionTypeConfigs[typeKey];
+                        const button = document.createElement('button');
+                        button.className = 'q-type-btn';
+                        button.textContent = config.label;
+                        button.dataset.type = typeKey;
+                        button.onclick = () => this.setActiveQuestionType(typeKey);
+                        container.appendChild(button);
+                    }
+                }
+
+                setActiveQuestionType(typeKey) {
+                    this.activeQuestionType = typeKey;
+                    document.querySelectorAll('.q-type-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.type === typeKey);
+                    });
+                }
+
+                convertToArabicLatex(equation) {
+                    const commands = (equation.match(/(\\[a-zA-Z]+)/g) || []);
+                    commands.forEach((command, i) => {
+                        equation = equation.replace(command, `__CMD_PLACEHOLDER_${i}__`);
+                    });
+                    const sortedKeys = Object.keys(this.ARABIC_LATEX_MAP).sort((a, b) => b.length - a.length);
+                    const parts = equation.split(' ');
+                    const processedParts = parts.map(part => this.ARABIC_LATEX_MAP[part] || part);
+                    equation = processedParts.join(' ');
+                    commands.forEach((command, i) => {
+                        equation = equation.replace(`__CMD_PLACEHOLDER_${i}__`, command);
+                    });
+                    return equation;
+                }
+
+                createMathField(equation, language, forceEn = false) {
+                    const isArabic = language === 'ar' && !forceEn;
+                    let latexValue = equation.replace(/\[BLANK\]/g, '\\textBlank'); // Handle text blanks in math
+                    if (isArabic) {
+                        latexValue = this.convertToArabicLatex(latexValue);
+                    }
+                    const localeAttrs = isArabic ? ' locale="ar" lang="ar"' : ' locale="en"';
+                    const processedValue = latexValue.replace(/"/g, '&quot;');
+                    return `<span class="LexicalTheme__math--inline" data-node-type="math" data-node-variation="inline"><math-field default-mode="inline-math" read-only="true" value="${processedValue}"${localeAttrs}></math-field></span>`;
+                }
+
+                processTextForHtml(text, language) {
+                    if (!text) return '';
+                    const direction = language === 'ar' ? ' dir="rtl"' : '';
+                    const blankHtml = '<span data-node-type="blank-line" data-node-variation="space">&nbsp;</span>';
+                    text = text.replace(/_{5,}/g, blankHtml);
+                    const parts = text.split(/(``[^`]*``|`[^`]*`)/);
+                    let finalHtmlContent = "";
+                    for (const part of parts) {
+                        if (part.startsWith('``') && part.endsWith('``')) {
+                            const mathContent = part.slice(2, -2);
+                            finalHtmlContent += this.createMathField(mathContent, language, true);
+                        } else if (part.startsWith('`') && part.endsWith('`')) {
+                            const mathContent = part.slice(1, -1);
+                            finalHtmlContent += this.createMathField(mathContent, language);
+                        } else if (part) {
+                            finalHtmlContent += `<span style="white-space: pre-wrap;">${DOMPurify.sanitize(part)}</span>`;
+                        }
+                    }
+                    return `<p class="LexicalTheme__paragraph"${direction}>${finalHtmlContent}</p>`;
+                }
+
+                smartAnalyze() {
+                    const rawText = document.getElementById('questionInput').value;
+                    if (!rawText.trim()) {
+                        this.showMessage(this.language === 'ar' ? 'الرجاء إدخال نص للتحليل' : 'Please enter text to analyze', 'warning');
+                        return;
+                    }
+
+                    try {
+                        const cleanedText = rawText.replace(/^((?:\s*(?:id|type|language|mapped_id|ai_template_id):\s*.*\n)+)\s*---\s*\n/gm, '$1');
+                        
+                        const separator = /^\s*---\s*$/m;
+                        const questionBlocks = cleanedText.split(separator).filter(block => block.trim());
+
+                        if (questionBlocks.length === 0 && cleanedText.trim()) {
+                            questionBlocks.push(cleanedText.trim());
+                        }
+                        
+                        this.questions = questionBlocks.map((block, index) => this._parseBlock(block, index));
+
+                        this.updateUIAfterChange(this.language === 'ar' ? 'تم التحليل الذكي بنجاح.' : 'Smart analysis successful.');
+                    } catch (error) {
+                        console.error("Smart Analysis Error:", error);
+                        this.showMessage(`${this.language === 'ar' ? 'حدث خطأ أثناء التحليل: ' : 'Error during analysis: '}${error.message}`, 'error');
+                    }
+                }
+
+                _parseBlock(block, index) {
+                    const lines = block.trim().split('\n');
+                    const metadata = {};
+                    let contentStartIndex = 0;
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        const isMetadataLine = /^\s*(id|type|language|mapped_id|ai_template_id)\s*:.+/.test(line) && !/^\s*\[/.test(line);
+                        if (isMetadataLine) {
+                            const [key, ...valueParts] = line.split(':');
+                            metadata[key.trim().toLowerCase()] = valueParts.join(':').trim();
+                        } else {
+                            contentStartIndex = i;
+                            break;
+                        }
+                    }
+
+                    const contentStr = lines.slice(contentStartIndex).join('\n').trim();
+                    
+                    const hasTags = /\[(STEM|PART|STATEMENT|CHOICES|ANSWER|MATCHING_PAIRS|GAPS)\]/i.test(contentStr);
+                    const hasMetadataType = !!metadata.type;
+                    
+                    let questionData = { metadata };
+                    metadata.id = metadata.id || `temp_${Date.now()}_${index}`;
+
+                    if (hasTags || hasMetadataType) {
+                        if (contentStr.includes('[STATEMENT]') && contentStr.includes('[PART]')) {
+                            const [statementContent, partsStr] = contentStr.split('[PART]', 2);
+                            questionData.statement = statementContent.replace('[STATEMENT]', '').trim();
+                            const partBlocksRaw = ('[PART]' + partsStr).split('[PART]');
+                            questionData.parts = partBlocksRaw.filter(p => p.trim()).map(p => this._parsePartWithTags(p, metadata));
+                        } else {
+                            questionData.parts = [this._parsePartWithTags(contentStr, metadata)];
+                        }
+                    } else {
+                        metadata.type = this.activeQuestionType;
+                        questionData.parts = [this._parsePartSimple(contentStr, metadata)];
+                    }
+
+                    return questionData;
+                }
+
+                _parsePartWithTags(partBlock, globalMetadata) {
+                    let part = { type: globalMetadata.type || this.activeQuestionType || 'unknown' };
+                    let currentTag = null;
+                    let content = {};
+
+                    partBlock.trim().split('\n').forEach(line => {
+                        const tagMatch = line.trim().match(/^\[([A-Z_]+)\]$/);
+                        if (tagMatch) {
+                            currentTag = tagMatch[1].toUpperCase();
+                            content[currentTag] = "";
+                        } else if (currentTag) {
+                            content[currentTag] += line + '\n';
+                        } else if (!content.STEM) {
+                           content.STEM = (content.STEM || '') + line + '\n';
+                        }
+                    });
+
+                    part.stem = content.STEM ? content.STEM.trim() : '';
+                    
+                    switch(part.type) {
+                        case 'oq':
+                        case 'mcq':
+                        case 'mrq':
+                            part.choices = (content.CHOICES || '').trim().split('\n').map(c => c.trim().replace(/^(-|\*)\s*/, ''));
+                            if (part.type !== 'oq') {
+                                const answers = [];
+                                (content.CHOICES || '').trim().split('\n').forEach((line, i) => {
+                                    if (line.trim().startsWith('*')) {
+                                        answers.push(i);
+                                    }
+                                });
+                                part.answer = part.type === 'mcq' ? answers[0] : answers;
+                            }
+                            break;
+                        case 'matching':
+                            part.pairs = (content.MATCHING_PAIRS || '').trim().split('\n').map(line => line.split('|').map(item => item.trim()));
+                            part.group1 = part.pairs.map(p => p[0]);
+                            part.group2 = part.pairs.map(p => p[1]);
+                            part.answer = part.pairs.map((_, i) => [i, i]);
+                            break;
+                        case 'gapText':
+                            part.answers = (content.GAPS || '').trim().split('\n').map((val, i) => ({ value: val.trim(), order: i + 1 }));
+                            break;
+                        case 'string':
+                        case 'frq':
+                        case 'frq_ai':
+                            part.answer = (content.ANSWER || '').trim();
+                            break;
+                        case 'input_box':
+                            const answerParts = (content.ANSWER || '').split('|');
+                            part.answer = { value: answerParts[0].trim(), unit: (answerParts[1] || '').trim() };
+                            break;
+                    }
+                    return part;
+                }
+
+                _parsePartSimple(text, metadata) {
+                    const type = metadata.type || this.activeQuestionType;
+                    let part = { type: type, confidence: 0.85 };
+                    const lines = text.split('\n').filter(l => l.trim() !== '');
+                    if (lines.length === 0) {
+                        part.stem = text;
+                        part.confidence = 0.1;
+                        return part;
+                    }
+                    
+                    part.stem = lines[0].trim();
+                    let remainingLines = lines.slice(1);
+
+                    switch(type) {
+                        case 'oq':
+                        case 'mcq':
+                        case 'mrq':
+                            part.choices = [];
+                            const answers = [];
+                            remainingLines.forEach((line, index) => {
+                                let choiceText = line.trim();
+                                if (choiceText.startsWith('*')) {
+                                    choiceText = choiceText.substring(1).trim();
+                                    answers.push(index);
+                                }
+                                choiceText = choiceText.replace(/^\s*([0-9٠-٩]+|[\u0621-\u064A A-Za-z])[\.\-\)]\s*/, '');
+                                part.choices.push(choiceText);
+                            });
+                            if (type === 'mcq') {
+                                part.answer = answers[0];
+                            } else if (type === 'mrq') {
+                                part.answer = answers;
+                            }
+                            break;
+                        case 'string':
+                        case 'free_response':
+                            part.answer = remainingLines.join('\n').trim();
+                            break;
+                    }
+                    return part;
+                }
+                
+                convertToJSON() {
+                    if (this.questions.length === 0) {
+                        this.showMessage(this.language === 'ar' ? 'لا توجد أسئلة لتحويلها.' : 'No questions to convert.', 'warning');
+                        return;
+                    }
+                    const advancedFormatQuestions = this.questions.map((q, index) => this.transformToAdvancedFormat(q, index));
+                    const jsonOutput = document.getElementById('jsonOutput');
+                    this.jsonForExport = JSON.stringify(advancedFormatQuestions, null, 2);
+                    jsonOutput.innerHTML = this.syntaxHighlight(this.jsonForExport);
+                    jsonOutput.style.display = 'block';
+                    document.getElementById('copyBtn').disabled = false;
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('downloadZipBtn').disabled = false;
+                    document.getElementById('csvBtn').disabled = false;
+                    this.showMessage(this.language === 'ar' ? 'تم تحويل الأسئلة إلى الصيغة المتقدمة بنجاح' : 'Successfully converted to advanced format', 'success');
+                }
+
+                transformToAdvancedFormat(question, index) {
+                    const meta = question.metadata;
+                    const lang = meta.language || this.customization.lang;
+                    
+                    const csvRow = this.csvData[index];
+                    let finalId = (csvRow && csvRow['Question Id']) ? parseInt(csvRow['Question Id'], 10) : (parseInt(meta.id, 10) || (Date.now() + index));
+                    let finalMappedId = parseInt(meta.mapped_id, 10) || finalId;
+
+                    if (lang === 'ar' && meta.mapped_id) {
+                        finalId = parseInt(meta.mapped_id, 10);
+                        finalMappedId = parseInt(meta.id, 10);
+                    }
+
+                    const finalJson = {
+                        parts: question.parts.map((p, partIndex) => this._transformPart(p, lang, partIndex)),
+                        statement: question.statement ? this.processTextForHtml(question.statement, lang) : null,
+                        instance_number: 1,
+                        metadata: {
+                            id: finalId,
+                            mapped_id: finalMappedId,
+                            category: this.customization.category,
+                            language: this.customization.lang,
+                            country: this.customization.country,
+                            dialect: this.customization.lang === 'ar' ? [this.customization.dialect] : ["american", "british"],
+                            source_id: { value: meta.source_id || 'N/A', page_number: null },
+                            description: (question.parts[0]?.stem || question.statement || '').substring(0, 150),
+                            has_example: false,
+                            parts_count: question.parts.length,
+                            instances_count: 1,
+                            publication_date: new Date().toLocaleString("en-CA", {timeZone: "Africa/Cairo", hour12: false}).replace(',', '')
+                        }
+                    };
+                    return finalJson;
+                }
+
+                _transformPart(part, lang, index) {
+                    const partJson = {
+                        n: index + 1,
+                        type: this.questionTypeConfigs[part.type]?.jsonType || part.type,
+                        subtype: null,
+                        standalone: false,
+                        stem: this.processTextForHtml(part.stem, lang),
+                        choices: []
+                    };
+                    switch (part.type) {
+                        case 'oq':
+                        case 'mcq':
+                        case 'mrq':
+                            const correctAnswers = new Set(Array.isArray(part.answer) ? part.answer : [part.answer]);
+                            partJson.choices = (part.choices || []).map((choice, i) => ({
+                                type: correctAnswers.has(i) ? 'key' : 'distractor',
+                                html_content: this.processTextForHtml(choice, lang),
+                                index: i, fixed_order: i + 1, group: 1, values: [], unit: null, last_order: false,
+                                correct_order: i + 1
+                            }));
+                            break;
+                        case 'matching':
+                            (part.group1 || []).forEach((item, i) => { partJson.choices.push({ type: 'distractor', group: 1, index: i, fixed_order: i + 1, html_content: this.processTextForHtml(item, lang), correct_order: i + 1, }); });
+                            (part.group2 || []).forEach((item, i) => { partJson.choices.push({ type: 'distractor', group: 2, index: i, fixed_order: i + 1, html_content: this.processTextForHtml(item, lang), correct_order: i + 1, }); });
+                            break;
+                        case 'gapText':
+                            partJson.gap_text_keys = (part.answers || []).map(ans => ({ value: ans.value, correct_order: ans.order }));
+                            partJson.stem = this.processTextForHtml(part.stem.replace(/\[BLANK\]/g, '_____'), lang);
+                            break;
+                        case 'string':
+                        case 'frq':
+                        case 'frq_ai':
+                            partJson.answer = this.processTextForHtml(part.answer, lang);
+                            partJson.choices = [];
+                            if (part.type === 'frq_ai' && part.metadata.ai_template_id) {
+                                partJson.ai = { ai_template_id: part.metadata.ai_template_id };
+                            }
+                            break;
+                        case 'input_box':
+                            partJson.answer = { value: part.answer.value, unit: part.answer.unit || null, constrains: { type: "integer" } };
+                            partJson.choices = [];
+                            break;
+                    }
+                    return partJson;
+                }
+                
+                displayResults() {
+                    const previewContainer = document.getElementById('questionsPreview');
+                    previewContainer.innerHTML = '';
+                    const placeholder = document.getElementById('preview-placeholder');
+                    if (this.questions.length === 0) {
+                        if (placeholder) {
+                            placeholder.style.display = 'flex';
+                            placeholder.querySelector('p').innerHTML = this.language === 'ar' ? 'ستظهر معاينة الأسئلة هنا بعد التحليل' : 'Questions preview will appear here after analysis';
+                        }
+                        return;
+                    }
+                    if (placeholder) placeholder.style.display = 'none';
+                    this.questions.forEach((q) => {
+                        const questionDiv = document.createElement('div');
+                        questionDiv.className = 'question-preview';
+                        questionDiv.id = `preview-${q.metadata.id}`;
+                        questionDiv.innerHTML = this._renderReadOnlyView(q);
+                        previewContainer.appendChild(questionDiv);
+                    });
+                    if (typeof MathLive !== 'undefined' && MathLive.renderMathInElement) {
+                        MathLive.renderMathInElement(previewContainer);
+                    } else {
+                        console.warn("MathLive library not ready, skipping math rendering.");
+                    }
+                }
+
+                _renderReadOnlyView(q) {
+                    const lang = q.metadata.language || 'ar';
+                    let html = `<div class="question-actions"><button class="action-btn delete-btn" title="حذف">🗑️</button></div>`;
+                    if (q.statement) {
+                        html += `<div class="statement-preview">${this.processTextForHtml(q.statement, lang)}</div>`;
+                    }
+                    q.parts.forEach((p) => {
+                        html += `<div class="part-preview">`;
+                        html += `<div class="question-type-badge type-${p.type}">${this.questionTypeConfigs[p.type]?.label || p.type}</div>`;
+                        html += `<div>${this.processTextForHtml(p.stem, lang)}</div>`;
+                        if (p.type === 'oq' || p.type === 'mcq' || p.type === 'mrq') {
+                            const correctAnswers = new Set(Array.isArray(p.answer) ? p.answer : [p.answer]);
+                            html += (p.choices || []).map((choice, i) => `<div class="choice-item ${correctAnswers.has(i) ? 'correct' : ''}">${this.processTextForHtml(choice, lang)}</div>`).join('');
+                        } else if (p.type === 'matching') {
+                            let g1Html = (p.group1 || []).map((item, i) => `<div class="matching-item">${i+1}. ${this.processTextForHtml(item, lang)}</div>`).join('');
+                            let g2Html = (p.group2 || []).map((item, i) => `<div class="matching-item">${i+1}. ${this.processTextForHtml(item, lang)}</div>`).join('');
+                            html += `<div class="matching-preview"><div class="matching-column"><strong>القائمة أ</strong>${g1Html}</div><div class="matching-column"><strong>القائمة ب</strong>${g2Html}</div></div>`;
+                        } else if (p.type === 'string' || p.type === 'frq' || p.type === 'frq_ai') {
+                             html += `<div class="choice-item correct"><strong>الإجابة:</strong> ${this.processTextForHtml(p.answer, lang)}</div>`;
+                        }
+                        html += `</div>`;
+                    });
+                    return html;
+                }
+                
+                deleteQuestion(id) {
+                    const qIndex = this.questions.findIndex(q => q.metadata.id === id);
+                    if (qIndex > -1) {
+                        this.questions.splice(qIndex, 1);
+                        this.updateUIAfterChange(this.language === 'ar' ? 'تم حذف السؤال.' : 'Question deleted.');
+                    }
+                }
+
+                clearAll() { 
+                    document.getElementById('questionInput').value = ''; 
+                    this.questions = []; 
+                    this.jsonForExport = ''; 
+                    this.csvData = [];
+                    localStorage.removeItem('aiq_csv_data');
+                    this.updateUIAfterChange(); 
+                    const jsonOutput = document.getElementById('jsonOutput'); 
+                    jsonOutput.style.display = 'none'; 
+                    jsonOutput.innerHTML = ''; 
+                    document.getElementById('copyBtn').disabled = true; 
+                    document.getElementById('downloadBtn').disabled = true; 
+                    document.getElementById('downloadZipBtn').disabled = true; 
+                    document.getElementById('csvBtn').disabled = true; 
+                    this.showMessage(this.language === 'ar' ? 'تم مسح كل شيء' : 'Everything cleared', 'success'); 
+                }
+                
+                updateUIAfterChange(message) {
+                    this.updateStatistics();
+                    this.displayResults();
+                    const jsonOutput = document.getElementById('jsonOutput');
+                    if (jsonOutput.style.display === 'block') { this.convertToJSON(); }
+                    document.getElementById('downloadZipBtn').disabled = this.questions.length === 0;
+                    if (message) { this.showMessage(message, 'success'); }
+                }
+
+                updateStatistics() {
+                    const total = this.questions.length;
+                    let totalConfidence = 0;
+                    this.questions.forEach(q => { totalConfidence += (q.metadata.confidence || 0.5); });
+                    document.getElementById('totalQuestions').textContent = total;
+                    const avgConfidence = total > 0 ? (totalConfidence / total) : 0;
+                    const confidencePercent = Math.round(avgConfidence * 100);
+                    document.getElementById('confidenceScore').textContent = `${confidencePercent}%`;
+                    document.getElementById('detectionQuality').style.width = `${confidencePercent}%`;
+                    document.getElementById('classificationAccuracy').style.width = `${Math.round(avgConfidence * 95)}%`;
+                    document.getElementById('dataCompleteness').style.width = `${Math.round(avgConfidence * 90)}%`;
+                }
+
+                showMessage(text, type = 'success') { const container = document.getElementById('messageContainer'); const messageDiv = document.createElement('div'); messageDiv.className = `message ${type}`; messageDiv.textContent = text; container.appendChild(messageDiv); setTimeout(() => { messageDiv.remove(); }, 4000); }
+                copyJSON() { if (!this.jsonForExport) { this.showMessage(this.language === 'ar' ? 'لا يوجد شيء لنسخه' : 'Nothing to copy', 'warning'); return; } const textArea = document.createElement('textarea'); textArea.value = this.jsonForExport; document.body.appendChild(textArea); textArea.select(); try { document.execCommand('copy'); this.showMessage(this.language === 'ar' ? 'تم نسخ JSON إلى الحافظة' : 'JSON copied to clipboard', 'success'); } catch (err) { this.showMessage(this.language === 'ar' ? 'فشل النسخ' : 'Copy failed', 'error'); } document.body.removeChild(textArea); }
+                downloadJSON() { if (!this.jsonForExport) { this.showMessage(this.language === 'ar' ? 'لا يوجد شيء لتحميله' : 'Nothing to download', 'warning'); return; } const blob = new Blob([this.jsonForExport], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'advanced_questions.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); this.showMessage(this.language === 'ar' ? 'بدء تحميل الملف...' : 'Download starting...', 'success'); }
+                
+                downloadZip() {
+                    if (this.questions.length === 0) {
+                        this.showMessage(this.language === 'ar' ? 'لا يوجد أسئلة لتحميلها' : 'No questions to download', 'warning');
+                        return;
+                    }
+                    const zip = new JSZip();
+                    this.questions.forEach((q, idx) => {
+                        const csvRow = this.csvData && this.csvData[idx];
+                        const questionId = (csvRow && csvRow['Question Id']) ? csvRow['Question Id'] : (q.metadata.id || `question_${idx + 1}`);
+                        const filename = `${questionId}.json`;
+                        const singleQuestionObject = this.transformToAdvancedFormat(q, idx);
+                        const content = JSON.stringify(singleQuestionObject, null, 2);
+                        zip.file(filename, content);
+                    });
+                    if (this.csvData && this.csvData.length > 0) {
+                        zip.file('questions.csv', this.getCSVString());
+                    }
+                    zip.generateAsync({ type: 'blob' }).then((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'JSONS.zip';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        this.showMessage(this.language === 'ar' ? 'تم تحميل ملف ZIP بنجاح' : 'ZIP file downloaded successfully', 'success');
+                    });
+                }
+                
+                toggleLanguage() {
+                    this.language = this.language === 'ar' ? 'en' : 'ar';
+                    this.updateInterfaceLanguage();
+                    this.saveSettings();
+                }
+
+                updateInterfaceLanguage() {
+                    const isAr = this.language === 'ar';
+                    document.documentElement.lang = isAr ? 'ar' : 'en';
+                    document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+                    const translations = {
+                        mainTitle: { ar: '🚀 محول الأسئلة الذكي المتطور', en: '🚀 Advanced Smart Question Converter' },
+                        mainSubtitle: { ar: 'حوّل نصوص الأسئلة إلى صيغة JSON متقدمة بضغطة زر', en: 'Convert question texts to advanced JSON format with one click' },
+                        panelTitle1: { ar: '<span style="font-size: 1.5em; line-height: 1;">①</span> اختر نوع السؤال', en: '<span style="font-size: 1.5em; line-height: 1;">①</span> Select Question Type' },
+                        panelTitle2: { ar: '<span style="font-size: 1.5em; line-height: 1;">②</span> أدخل النص', en: '<span style="font-size: 1.5em; line-height: 1;">②</span> Enter Text' },
+                        panelTitle3: { ar: '🔍 تحليل ومخرجات', en: '🔍 Analysis & Output' },
+                        panelTitle4: { ar: '👁️ معاينة الأسئلة', en: '👁️ Questions Preview' },
+                        analyzeBtn: { ar: '🤖 تحليل ذكي', en: '🤖 Smart Analyze' },
+                        enhanceBtn: { ar: '💎 تحسين بالـ AI', en: '💎 Enhance with AI' },
+                        convertBtn: { ar: '🔄 تحويل لـ JSON', en: '🔄 Convert to JSON' },
+                        customizeBtn: { ar: '⚙️ تخصيص', en: '⚙️ Customize' },
+                        clearBtn: { ar: '🗑️ مسح الكل', en: '🗑️ Clear All' },
+                        langBtn: { ar: '🌐 English', en: '🌐 العربية' },
+                        copyBtn: { ar: '📋 نسخ JSON', en: '📋 Copy JSON' },
+                        downloadBtn: { ar: '💾 تحميل', en: '💾 Download' },
+                        downloadZipBtn: { ar: '🗜️ تحميل كـ ZIP', en: '🗜️ Download as ZIP' },
+                        csvBtn: { ar: '📄 CSV', en: '📄 CSV' },
+                    };
+                    document.getElementById('main-title').innerHTML = translations.mainTitle[this.language];
+                    document.getElementById('main-subtitle').innerHTML = translations.mainSubtitle[this.language];
+                    document.getElementById('panel-title-1').innerHTML = translations.panelTitle1[this.language];
+                    document.getElementById('panel-title-2').innerHTML = translations.panelTitle2[this.language];
+                    document.getElementById('panel-title-3').innerHTML = translations.panelTitle3[this.language];
+                    document.getElementById('panel-title-4').innerHTML = translations.panelTitle4[this.language];
+                    document.getElementById('smart-analyze-btn').innerHTML = translations.analyzeBtn[this.language];
+                    document.getElementById('aiEnhanceBtn').innerHTML = translations.enhanceBtn[this.language];
+                    document.getElementById('convert-json-btn').innerHTML = translations.convertBtn[this.language];
+                    document.getElementById('customizeBtn').innerHTML = translations.customizeBtn[this.language];
+                    document.getElementById('clear-all-btn').innerHTML = translations.clearBtn[this.language];
+                    document.getElementById('langSwitchBtn').innerHTML = translations.langBtn[this.language];
+                    document.getElementById('copyBtn').innerHTML = translations.copyBtn[this.language];
+                    document.getElementById('downloadBtn').innerHTML = translations.downloadBtn[this.language];
+                    document.getElementById('downloadZipBtn').innerHTML = translations.downloadZipBtn[this.language];
+                    document.getElementById('csvBtn').innerHTML = translations.csvBtn[this.language];
+                    this.displayResults();
+                }
+                
+                openCustomizeModal() {
+                    document.getElementById('customizeModal').style.display = 'flex';
+                    document.getElementById('categorySelect').value = this.customization.category;
+                    document.getElementById('langSelect').value = this.customization.lang;
+                    document.getElementById('countrySelect').value = this.customization.country;
+                    document.getElementById('dialectSelect').value = this.customization.dialect;
+                }
+
+                closeCustomizeModal() {
+                    document.getElementById('customizeModal').style.display = 'none';
+                }
+
+                saveCustomization() {
+                    this.customization.category = document.getElementById('categorySelect').value;
+                    this.customization.lang = document.getElementById('langSelect').value;
+                    this.customization.country = document.getElementById('countrySelect').value;
+                    this.customization.dialect = document.getElementById('dialectSelect').value;
+                    this.saveSettings();
+                    this.closeCustomizeModal();
+                    this.showMessage(this.language === 'ar' ? 'تم حفظ الإعدادات' : 'Settings saved', 'success');
+                    if (document.getElementById('jsonOutput').style.display === 'block') {
+                        this.convertToJSON();
+                    }
+                }
+                
+                saveSettings() { localStorage.setItem('aiq_settings', JSON.stringify({ language: this.language, customization: this.customization })); }
+                loadSettings() { try { const settings = JSON.parse(localStorage.getItem('aiq_settings')); if (settings) { if (settings.language) this.language = settings.language; if (settings.customization) this.customization = settings.customization; } } catch {} }
+                saveApiKey() { localStorage.setItem('aiq_api_key', document.getElementById('apiKey').value.trim()); }
+                loadApiKey() { const apiKey = localStorage.getItem('aiq_api_key'); if (apiKey) { this.apiKey = apiKey; document.getElementById('apiKey').value = apiKey; } }
+                
+                openCSVModal() {
+                    if (typeof Handsontable === 'undefined') { this.showMessage('Error: Table library not loaded.', 'error'); return; }
+                    if (this.questions.length === 0) { this.showMessage('Please analyze questions first.', 'warning'); return; }
+                    const columns = [ { data: 'Question Id', type: 'text' }, { data: 'Lang', type: 'text', readOnly: true }, { data: 'Lesson Id', type: 'text' }, { data: 'Attributes', type: 'text', readOnly: true }, { data: 'Category', type: 'text', readOnly: true }, { data: 'Dialect', type: 'text', readOnly: true } ];
+                    const saved = localStorage.getItem('aiq_csv_data');
+                    let savedData = null;
+                    try { savedData = JSON.parse(saved); if (!Array.isArray(savedData) || savedData.length !== this.questions.length) { savedData = null; } } catch (e) { savedData = null; }
+                    if (savedData) { this.csvData = savedData; } else { this.csvData = this.questions.map((q) => ({ 'Question Id': q.metadata.id, 'Lang': q.metadata.language || this.customization.lang, 'Lesson Id': '', 'Attributes': q.parts.map(p=>p.type).join(','), 'Category': q.metadata.category || this.customization.category, 'Dialect': this.customization.dialect })); }
+                    document.getElementById('csvModalBg').style.display = 'flex';
+                    if (this.hotInstance) this.hotInstance.destroy();
+                    this.hotInstance = new Handsontable(document.getElementById('hotTable'), { data: this.csvData, colHeaders: ['Question Id', 'Lang', 'Lesson Id', 'Attributes', 'Category', 'Dialect'], columns: columns, rowHeaders: true, width: '100%', height: 500, licenseKey: 'non-commercial-and-evaluation', manualColumnResize: true, stretchH: 'all' });
+                }
+                closeCSVModal() { document.getElementById('csvModalBg').style.display = 'none'; if (this.hotInstance) { this.hotInstance.destroy(); this.hotInstance = null; } }
+                saveCSVData() { if (this.hotInstance) { const tableData = this.hotInstance.getData(); this.csvData = tableData.map(row => ({ 'Question Id': row[0], 'Lang': row[1], 'Lesson Id': row[2], 'Attributes': row[3], 'Category': row[4], 'Dialect': row[5] })); localStorage.setItem('aiq_csv_data', JSON.stringify(this.csvData)); this.showMessage('CSV data saved successfully', 'success'); this.closeCSVModal(); this.displayResults(); } }
+                getCSVString() { const header = ['Question Id', 'Lang', 'Lesson Id', 'Attributes', 'Category', 'Dialect']; const rows = this.csvData.map(row => header.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(',') ); return [header.join(',')].concat(rows).join('\n'); }
+                syntaxHighlight(json) { json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => { let cls = 'number'; if (/^"/.test(match)) { cls = /:$/.test(match) ? 'key' : 'string'; } else if (/true|false/.test(match)) { cls = 'boolean'; } else if (/null/.test(match)) { cls = 'null'; } return '<span class="' + cls + '">' + match + '</span>'; }); }
+            }
+
+            const app = new AIQuestionConverter();
+        });
+    </script>
+</body>
+</html>
