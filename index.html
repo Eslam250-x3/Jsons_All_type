@@ -686,7 +686,7 @@
                     const hasTags = /\[(STEM|PART|STATEMENT|CHOICES|ANSWER|MATCHING_PAIRS|GAPS)\]/i.test(contentStr);
                     const hasMetadataType = !!metadata.type;
                     
-                    let questionData = { metadata };
+                    let questionData = { metadata, _originalBlock: block };
                     metadata.id = metadata.id || `temp_${Date.now()}_${index}`;
 
                     if (hasTags || hasMetadataType) {
@@ -721,16 +721,22 @@
                         if (tagMatch) {
                             currentTag = tagMatch[1].toUpperCase();
                             content[currentTag] = "";
-                            if (contentStartIndex === 0) contentStartIndex = i + 1;
+                            if (contentStartIndex === 0 && i === 0) contentStartIndex = 1;
                         } else if (metaMatch && !currentTag) {
                             partMetadata[metaMatch[1].toLowerCase()] = metaMatch[2].trim();
+                            contentStartIndex = i + 1;
                         } else if (currentTag) {
                             content[currentTag] += line + '\n';
                         }
                     }
                     
                     let part = { ...partMetadata, type: partMetadata.type || globalMetadata.type || this.activeQuestionType };
-                    part.stem = content.STEM ? content.STEM.trim() : lines.slice(contentStartIndex).join('\n').trim();
+                    
+                    if (!content.STEM && !currentTag) {
+                         part.stem = lines.slice(contentStartIndex).join('\n').trim();
+                    } else {
+                         part.stem = content.STEM ? content.STEM.trim() : '';
+                    }
                     
                     switch(part.type) {
                         case 'oq':
@@ -985,8 +991,6 @@
                     const qIndex = this.questions.findIndex(q => q.metadata.id === id);
                     if (qIndex > -1) {
                         this.questions[qIndex]._editing = true;
-                        // We need to reconstruct the original text block for editing
-                        // This is a simplification; a more robust solution would store the original block on parse
                         this.questions[qIndex]._originalBlock = "لا يمكن عرض النص الأصلي حاليًا. يرجى لصق النص الجديد.";
                         this.displayResults();
                     }
@@ -1176,7 +1180,7 @@
                     const saved = localStorage.getItem('aiq_csv_data');
                     let savedData = null;
                     try { savedData = JSON.parse(saved); if (!Array.isArray(savedData) || savedData.length !== this.questions.length) { savedData = null; } } catch (e) { savedData = null; }
-                    if (savedData) { this.csvData = savedData; } else { this.csvData = this.questions.map((q) => ({ 'Question Id': q.metadata.id, 'Lang': q.metadata.language || this.customization.lang, 'Lesson Id': '', 'Attributes': q.parts.map(p=>p.type).join(','), 'Category': q.metadata.category || this.customization.category, 'Dialect': this.customization.dialect })); }
+                    if (savedData) { this.csvData = savedData; } else { this.csvData = this.questions.map((q) => ({ 'Question Id': q.metadata.id, 'Lang': q.metadata.language || this.customization.lang, 'Lesson Id': '', 'Attributes': q.parts.map(p => this.questionTypeConfigs[p.type]?.jsonType || p.type).join(','), 'Category': q.metadata.category || this.customization.category, 'Dialect': this.customization.dialect })); }
                     document.getElementById('csvModalBg').style.display = 'flex';
                     if (this.hotInstance) this.hotInstance.destroy();
                     this.hotInstance = new Handsontable(document.getElementById('hotTable'), { data: this.csvData, colHeaders: ['Question Id', 'Lang', 'Lesson Id', 'Attributes', 'Category', 'Dialect'], columns: columns, rowHeaders: true, width: '100%', height: 500, licenseKey: 'non-commercial-and-evaluation', manualColumnResize: true, stretchH: 'all' });
