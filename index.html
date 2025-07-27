@@ -553,7 +553,7 @@
                     document.getElementById('customize-save-btn').addEventListener('click', () => this.saveCustomization());
 
                     document.getElementById('questionsPreview').addEventListener('click', (event) => {
-                        const target = event.target.closest('.action-btn');
+                        const target = event.target.closest('.action-btn, .btn-save-edit, .btn-cancel-edit');
                         if (!target) return;
 
                         const questionPreview = target.closest('.question-preview');
@@ -565,6 +565,10 @@
                             this.deleteQuestion(questionId);
                         } else if (target.classList.contains('edit-btn')) {
                             this.startEditQuestion(questionId);
+                        } else if (target.classList.contains('btn-save-edit')) {
+                            this.saveEditQuestion(questionId);
+                        } else if (target.classList.contains('btn-cancel-edit')) {
+                            this.cancelEditQuestion(questionId);
                         }
                     });
                 }
@@ -981,8 +985,8 @@
                     const originalBlock = this.questions[index]._originalBlock || '';
                     let html = `<textarea class="edit-textarea" id="edit-q-text-${q.metadata.id}">${originalBlock}</textarea>`;
                     html += `<div style="margin-top:10px;display:flex;gap:10px;">
-                        <button class="btn btn-success" onclick="app.saveEditQuestion('${q.metadata.id}')">💾 حفظ</button>
-                        <button class="btn btn-secondary" onclick="app.cancelEditQuestion('${q.metadata.id}')">❌ إلغاء</button>
+                        <button class="btn btn-success btn-save-edit">💾 حفظ</button>
+                        <button class="btn btn-secondary btn-cancel-edit">❌ إلغاء</button>
                     </div>`;
                     return html;
                 }
@@ -991,7 +995,6 @@
                     const qIndex = this.questions.findIndex(q => q.metadata.id === id);
                     if (qIndex > -1) {
                         this.questions[qIndex]._editing = true;
-                        this.questions[qIndex]._originalBlock = "لا يمكن عرض النص الأصلي حاليًا. يرجى لصق النص الجديد.";
                         this.displayResults();
                     }
                 }
